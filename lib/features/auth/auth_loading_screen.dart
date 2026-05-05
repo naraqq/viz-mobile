@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
 
 class AuthLoadingScreen extends StatefulWidget {
   const AuthLoadingScreen({super.key});
