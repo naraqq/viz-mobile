@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "325764829403",
+    "project_id": "screenx-ee8de",
+    "storage_bucket": "screenx-ee8de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325764829403:android:4342bb6a678ebe41343cfe",
+        "android_client_info": {
+          "package_name": "com.vizapp.viz_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "325764829403-bpm00h03hah3v1gh5gll1vprai9rcki2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdp9qRmPtRRRHEOY0L8Aaxktj6HkwDlmQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "325764829403-bpm00h03hah3v1gh5gll1vprai9rcki2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
