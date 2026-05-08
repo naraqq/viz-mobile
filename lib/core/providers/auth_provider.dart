@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
 import '../models/user.dart';
@@ -10,12 +12,14 @@ class AuthState {
   final User? user;
   final bool isInitializing;
   final bool isLoading;
+  final bool needsPassword;
   final String? error;
 
   const AuthState({
     this.user,
     this.isInitializing = false,
     this.isLoading = false,
+    this.needsPassword = false,
     this.error,
   });
 
@@ -25,11 +29,13 @@ class AuthState {
     User? user,
     bool? isInitializing,
     bool? isLoading,
+    bool? needsPassword,
     String? error,
   }) => AuthState(
     user: user ?? this.user,
     isInitializing: isInitializing ?? this.isInitializing,
     isLoading: isLoading ?? this.isLoading,
+    needsPassword: needsPassword ?? this.needsPassword,
     error: error,
   );
 
@@ -37,6 +43,7 @@ class AuthState {
     user: user,
     isInitializing: isInitializing,
     isLoading: isLoading,
+    needsPassword: needsPassword,
   );
 }
 
@@ -56,6 +63,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final res = await _api.get<Map<String, dynamic>>(ApiEndpoints.user);
       final user = User.fromJson(res.data!['user'] as Map<String, dynamic>);
+      OneSignal.login(user.id.toString());
       state = AuthState(user: user);
     } catch (_) {
       await _api.clearToken();
@@ -77,6 +85,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = res.data!['token'] as String;
       await _api.saveToken(token, remember: remember);
       final user = User.fromJson(res.data!['user'] as Map<String, dynamic>);
+      OneSignal.login(user.id.toString());
       state = AuthState(user: user);
       return true;
     } on DioException catch (e) {
@@ -121,11 +130,64 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> signInWithGoogle() async {
+    state = state.clearError();
+    try {
+      final provider = fb.GoogleAuthProvider()
+        ..addScope('email')
+        ..addScope('profile');
+      final fbUser =
+          await fb.FirebaseAuth.instance.signInWithProvider(provider);
+      final firebaseIdToken = await fbUser.user!.getIdToken();
+
+      final res = await _api.post<Map<String, dynamic>>(
+        ApiEndpoints.googleAuth,
+        data: {'id_token': firebaseIdToken},
+      );
+      final token = res.data!['token'] as String;
+      await _api.saveToken(token);
+      final user = User.fromJson(res.data!['user'] as Map<String, dynamic>);
+      final needsPassword = res.data!['needs_password'] as bool? ?? false;
+      OneSignal.login(user.id.toString());
+      state = AuthState(user: user, needsPassword: needsPassword);
+      return true;
+    } on fb.FirebaseAuthException catch (e) {
+      state = state.copyWith(error: 'Firebase: ${e.code} — ${e.message}');
+      return false;
+    } on DioException catch (e) {
+      state = state.copyWith(error: _extractError(e));
+      return false;
+    } catch (e) {
+      final s = e.toString();
+      state = state.copyWith(error: s.length > 120 ? s.substring(0, 120) : s);
+      return false;
+    }
+  }
+
+  Future<bool> setPassword(String password) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _api.post<dynamic>(
+        ApiEndpoints.setPassword,
+        data: {'password': password, 'password_confirmation': password},
+      );
+      state = state.copyWith(isLoading: false, needsPassword: false);
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+      return false;
+    } catch (_) {
+      state = state.copyWith(isLoading: false, error: 'Нууц үг тохируулахад алдаа гарлаа.');
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _api.post<dynamic>(ApiEndpoints.logout);
     } catch (_) {}
     await _api.clearToken();
+    OneSignal.logout();
     state = const AuthState();
   }
 

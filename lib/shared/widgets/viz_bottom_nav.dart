@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/providers/notifications_provider.dart';
 import '../../core/theme/app_theme.dart';
 
-class VizBottomNav extends StatelessWidget {
+class VizBottomNav extends ConsumerWidget {
   final Widget child;
 
   const VizBottomNav({super.key, required this.child});
@@ -10,19 +12,22 @@ class VizBottomNav extends StatelessWidget {
   static const _tabs = [
     (icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Нүүр', path: '/'),
     (icon: Icons.search_outlined, activeIcon: Icons.search, label: 'Хайх', path: '/browse'),
+    (icon: Icons.notifications_none_outlined, activeIcon: Icons.notifications, label: 'Мэдэгдэл', path: '/notifications'),
     (icon: Icons.person_outline, activeIcon: Icons.person, label: 'Профайл', path: '/profile'),
   ];
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/browse')) return 1;
-    if (location.startsWith('/profile')) return 2;
+    if (location.startsWith('/notifications')) return 2;
+    if (location.startsWith('/profile')) return 3;
     return 0;
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final index = _currentIndex(context);
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -37,22 +42,78 @@ class VizBottomNav extends StatelessWidget {
           backgroundColor: const Color(0xFF0A0A0A),
           indicatorColor: Colors.transparent,
           selectedIndex: index,
-          onDestinationSelected: (i) {
-            context.go(_tabs[i].path);
-          },
-          destinations: _tabs.map((tab) {
-            final isSelected = _tabs.indexOf(tab) == index;
+          onDestinationSelected: (i) => context.go(_tabs[i].path),
+          destinations: List.generate(_tabs.length, (i) {
+            final tab = _tabs[i];
+            final isSelected = i == index;
+            final isBell = tab.path == '/notifications';
+            final color = isSelected ? Colors.white : const Color(0xFF808080);
             return NavigationDestination(
-              icon: Icon(tab.icon,
-                  color: isSelected ? Colors.white : const Color(0xFF808080)),
-              selectedIcon: Icon(tab.activeIcon, color: Colors.white),
+              icon: isBell
+                  ? _BadgedBell(
+                      icon: tab.icon,
+                      color: color,
+                      count: unreadCount,
+                    )
+                  : Icon(tab.icon, color: color),
+              selectedIcon: isBell
+                  ? _BadgedBell(
+                      icon: tab.activeIcon,
+                      color: Colors.white,
+                      count: unreadCount,
+                    )
+                  : Icon(tab.activeIcon, color: Colors.white),
               label: tab.label,
             );
-          }).toList(),
+          }),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           height: 64,
         ),
       ),
+    );
+  }
+}
+
+class _BadgedBell extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final int count;
+
+  const _BadgedBell({
+    required this.icon,
+    required this.color,
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon, color: color),
+        if (count > 0)
+          Positioned(
+            top: -4,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

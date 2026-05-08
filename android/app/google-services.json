@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "325764829403-aur08inh7nq7mau374egsmp4nhck0aob.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vizapp.viz_flutter",
+            "certificate_hash": "ce4a7eb4260fb306f654835ea4633ae4efffffc3"
+          }
+        },
+        {
           "client_id": "325764829403-bpm00h03hah3v1gh5gll1vprai9rcki2.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "325764829403-bpm00h03hah3v1gh5gll1vprai9rcki2.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "325764829403-50sjtt6i94b1pscregpsss1hp8itpl01.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.vizapp.vizFlutter"
+              }
             }
           ]
         }

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_loading_screen.dart';
 import '../../features/auth/login_screen.dart';
-import '../../features/auth/register_screen.dart';
 import '../../features/browse/browse_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/movies/movie_detail_screen.dart';
 import '../../features/player/player_screen.dart';
@@ -36,9 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final isAuth = authState.isAuthenticated;
-      final isAuthRoute =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      final isAuthRoute = state.matchedLocation == '/login';
 
       if (isLoadingRoute) return isAuth ? '/' : '/login';
       if (!isAuth && !isAuthRoute) return '/login';
@@ -81,6 +79,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const ProfileScreen(),
             ),
           ),
+          GoRoute(
+            path: '/notifications',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const NotificationsScreen(),
+            ),
+          ),
         ],
       ),
       GoRoute(
@@ -99,11 +104,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const AuthLoadingScreen(),
         ),
-      ),
-      GoRoute(
-        path: '/register',
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const RegisterScreen()),
       ),
       GoRoute(
         path: '/movies/:slug',

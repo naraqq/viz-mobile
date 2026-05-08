@@ -8,6 +8,11 @@ class ApiEndpoints {
   static const String register = '/auth/register';
   static const String logout = '/auth/logout';
   static const String user = '/auth/user';
+  static const String googleAuth = '/auth/google';
+  static const String setPassword = '/auth/set-password';
+
+  static const String notifications = '/notifications';
+  static String notificationRead(int id) => '/notifications/$id/read';
 
   static const String home = '/home';
 
