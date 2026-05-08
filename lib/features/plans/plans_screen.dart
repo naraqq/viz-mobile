@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api/api_endpoints.dart';
 import '../../core/models/subscription_plan.dart';
 import '../../core/providers/auth_provider.dart';
@@ -33,7 +34,7 @@ class PlansScreen extends ConsumerWidget {
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => context.pop(),
         ),
         title: const Text(
           'Багцууд',

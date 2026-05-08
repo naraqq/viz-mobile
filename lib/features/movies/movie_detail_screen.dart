@@ -345,7 +345,7 @@ class MovieDetailScreen extends ConsumerWidget {
                         )
                       else
                         ElevatedButton.icon(
-                          onPressed: () => context.go('/plans'),
+                          onPressed: () => context.push('/plans'),
                           icon: const Icon(Icons.lock_outline),
                           label: const Text('Үзэхийн тулд багц авах'),
                           style: ElevatedButton.styleFrom(

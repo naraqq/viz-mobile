@@ -239,7 +239,7 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                           : null,
                       onPressed: () {
                         if (!canWatch) {
-                          context.go('/plans');
+                          context.push('/plans');
                           return;
                         }
                         if (featuredEpisode != null && featuredSeason != null) {
@@ -313,7 +313,7 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                             canWatch: canWatch,
                             onTap: () {
                               if (!canWatch) {
-                                context.go('/plans');
+                                context.push('/plans');
                                 return;
                               }
                               _openEpisode(

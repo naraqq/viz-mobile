@@ -15,6 +15,8 @@ class ApiEndpoints {
   static String notificationRead(int id) => '/notifications/$id/read';
 
   static const String home = '/home';
+  static const String content = '/content';
+  static const String genres = '/genres';
 
   static const String movies = '/movies';
   static String movieDetail(String slug) => '/movies/$slug';

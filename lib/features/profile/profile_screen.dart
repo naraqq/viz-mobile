@@ -160,7 +160,7 @@ class _SubscriptionBadge extends StatelessWidget {
       );
     }
     return GestureDetector(
-      onTap: () => context.go('/plans'),
+      onTap: () => context.push('/plans'),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
@@ -213,7 +213,7 @@ class _ProfileBody extends StatelessWidget {
               icon: Icons.bolt_rounded,
               text: 'Бүх кино, цуврал үзэхийн тулд багцаа сайжруулна уу',
               color: AppTheme.primary,
-              onTap: () => context.go('/plans'),
+              onTap: () => context.push('/plans'),
             ),
 
           const SizedBox(height: 24),
@@ -228,7 +228,7 @@ class _ProfileBody extends StatelessWidget {
           _MenuTile(
             icon: Icons.subscriptions_outlined,
             label: 'Захиалгын багцууд',
-            onTap: () => context.go('/plans'),
+            onTap: () => context.push('/plans'),
           ),
           _MenuTile(
             icon: Icons.video_library_outlined,

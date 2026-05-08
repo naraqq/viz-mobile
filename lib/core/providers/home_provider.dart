@@ -27,9 +27,15 @@ final homeProvider = FutureProvider<HomeData>((ref) async {
           .map((i) => CatalogItem.fromJson(i as Map<String, dynamic>))
           .toList();
 
-  final rows = (data['rows'] as List<dynamic>? ?? [])
-      .map((r) => ContentRow.fromJson(r as Map<String, dynamic>))
-      .toList();
+  final rawRows = data['rows'] as List<dynamic>? ?? [];
+  // ignore: avoid_print
+  print('[HomeProvider] API returned ${rawRows.length} rows');
+  final rows = rawRows.map((r) {
+    final row = ContentRow.fromJson(r as Map<String, dynamic>);
+    // ignore: avoid_print
+    print('[HomeProvider] row "${row.label}": ${row.items.length} items');
+    return row;
+  }).toList();
 
   final continueWatching =
       (data['continue_watching'] as List<dynamic>? ?? [])
