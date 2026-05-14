@@ -1,6 +1,14 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_endpoints.dart';
+
+String get _currentPlatform {
+  if (Platform.isIOS) return 'ios';
+  if (Platform.isAndroid) return 'android';
+  return 'web';
+}
 
 class ApiClient {
   static const _tokenKey = 'auth_token';
@@ -19,6 +27,7 @@ class ApiClient {
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
+              'X-Platform': _currentPlatform,
             },
           ),
         ) {

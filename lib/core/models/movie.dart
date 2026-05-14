@@ -20,6 +20,7 @@ class Movie {
   final double? rentalPrice;
   final int? rentalDurationHours;
   final bool isFeatured;
+  final bool reviewFriendly;
   final List<Genre> genres;
   final StreamVideo? streamVideo;
 
@@ -41,6 +42,7 @@ class Movie {
     this.rentalPrice,
     this.rentalDurationHours,
     this.isFeatured = false,
+    this.reviewFriendly = false,
     this.genres = const [],
     this.streamVideo,
   });
@@ -80,6 +82,7 @@ class Movie {
         rentalPrice: readDouble(json['rental_price']),
         rentalDurationHours: readInt(json['rental_duration_hours']),
         isFeatured: readBool(json['is_featured']),
+        reviewFriendly: readBool(json['review_friendly']),
         genres: (json['genres'] as List<dynamic>? ?? [])
             .map((g) => Genre.fromJson(g as Map<String, dynamic>))
             .toList(),

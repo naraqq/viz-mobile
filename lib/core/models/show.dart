@@ -17,6 +17,7 @@ class Show {
   final int? numberOfEpisodes;
   final double? voteAverage;
   final bool isFeatured;
+  final bool reviewFriendly;
   final List<Genre> genres;
   final List<Season> seasons;
 
@@ -35,6 +36,7 @@ class Show {
     this.numberOfEpisodes,
     this.voteAverage,
     this.isFeatured = false,
+    this.reviewFriendly = false,
     this.genres = const [],
     this.seasons = const [],
   });
@@ -58,6 +60,7 @@ class Show {
     numberOfEpisodes: readInt(json['number_of_episodes']),
     voteAverage: readDouble(json['vote_average']),
     isFeatured: readBool(json['is_featured']),
+    reviewFriendly: readBool(json['review_friendly']),
     genres: (json['genres'] as List<dynamic>? ?? [])
         .map((g) => Genre.fromJson(g as Map<String, dynamic>))
         .toList(),
