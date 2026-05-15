@@ -10,6 +10,9 @@ class Episode {
   final String? overviewMn;
   final String? stillUrl;
   final int? runtime;
+  final String? airDate;
+  final bool isReleased;
+  final String? availableLabel;
   final StreamVideo? streamVideo;
 
   const Episode({
@@ -21,6 +24,9 @@ class Episode {
     this.overviewMn,
     this.stillUrl,
     this.runtime,
+    this.airDate,
+    this.isReleased = true,
+    this.availableLabel,
     this.streamVideo,
   });
 
@@ -33,6 +39,9 @@ class Episode {
     overviewMn: json['overview_mn'] as String?,
     stillUrl: json['still_url'] as String?,
     runtime: readInt(json['runtime']),
+    airDate: json['air_date'] as String?,
+    isReleased: json['is_released'] as bool? ?? true,
+    availableLabel: json['available_label'] as String?,
     streamVideo: json['stream_video'] != null
         ? StreamVideo.fromJson(json['stream_video'] as Map<String, dynamic>)
         : null,

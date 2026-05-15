@@ -22,7 +22,8 @@ class ShowDetailScreen extends ConsumerStatefulWidget {
 class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
   int _selectedSeasonIndex = 0;
 
-  bool _hasReadyVideo(Episode episode) => episode.streamVideo?.isReady == true;
+  bool _hasReadyVideo(Episode episode) =>
+      episode.isReleased && episode.streamVideo?.isReady == true;
 
   Episode? _findResumeEpisode(ShowDetailData detail) {
     for (final season in detail.show.seasons) {
@@ -612,6 +613,7 @@ class _EpisodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasVideo = episode.streamVideo?.isReady == true;
+    final released = episode.isReleased;
     final description = episode.overviewMn ?? episode.overview;
     final progressValue = _progressValue(episode, progress);
     final remaining = _remainingText(episode, progress);
@@ -621,8 +623,11 @@ class _EpisodeTile extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: hasVideo || !canWatch ? onTap : null,
+      onTap: (released && hasVideo) || !canWatch ? onTap : null,
       child: Container(
+        foregroundDecoration: released
+            ? null
+            : BoxDecoration(color: Colors.black.withValues(alpha: 0.28)),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: Colors.white10)),
@@ -671,7 +676,9 @@ class _EpisodeTile extends StatelessWidget {
                               border: Border.all(color: Colors.white70),
                             ),
                             child: Icon(
-                              canWatch && hasVideo
+                              !released
+                                  ? Icons.schedule
+                                  : canWatch && hasVideo
                                   ? Icons.play_arrow
                                   : Icons.lock_outline,
                               color: Colors.white,
@@ -710,7 +717,17 @@ class _EpisodeTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (duration.isNotEmpty) ...[
+                      if (!released && episode.availableLabel != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          episode.availableLabel!,
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ] else if (duration.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           duration,
@@ -735,7 +752,7 @@ class _EpisodeTile extends StatelessWidget {
                 ),
               ],
             ),
-            if (description != null && description.trim().isNotEmpty) ...[
+            if (released && description != null && description.trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -751,7 +768,7 @@ class _EpisodeTile extends StatelessWidget {
                 ),
               ),
             ],
-            if (!hasVideo && canWatch) ...[
+            if (released && !hasVideo && canWatch) ...[
               const SizedBox(height: 6),
               const Padding(
                 padding: EdgeInsets.only(left: 130, right: 8),
