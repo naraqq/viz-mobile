@@ -96,7 +96,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   bool _showControls = true;
   bool _isLocked = false;
   bool _isBuffering = false;
-  bool _isCropped = false;
+  bool _isCropped = true;
   double _speed = 1.0;
 
   Timer? _hideTimer;
