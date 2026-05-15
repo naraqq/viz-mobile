@@ -1,5 +1,5 @@
 name: viz_flutter
-description: "VIZ - Streaming App"
+description: "monfilm - Streaming App"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -71,7 +71,7 @@ flutter_native_splash:
   ios: true
   android: true
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/logo.png"
