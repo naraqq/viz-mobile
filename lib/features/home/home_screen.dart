@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/catalog_item.dart';
 import '../../core/models/content_row.dart';
 import '../../core/models/continue_watching_item.dart';
-import '../../core/models/genre.dart';
 import '../../core/providers/home_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/content_card.dart';
@@ -25,8 +24,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final homeAsync = ref.watch(homeProvider);
-    final home = homeAsync.valueOrNull;
-    final categories = home == null ? <_HomeCategory>[] : _categoriesFor(home);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -34,7 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: _HomeAppBar(
         mode: _mode,
         onModeChanged: (mode) => setState(() => _mode = mode),
-        onCategoryTap: () => _showCategorySheet(context, categories),
+        onCategoryTap: () => _showGenreSheet(context),
       ),
       body: homeAsync.when(
         loading: () => const _HomeLoading(),
@@ -158,94 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .toList();
   }
 
-  List<_HomeCategory> _categoriesFor(HomeData home) {
-    final bySlug = <String, _HomeCategory>{};
-    final items = [
-      ...home.featuredItems,
-      ...home.rows.expand((row) => row.items),
-    ].where(_matchesCatalogMode);
+  void _showGenreSheet(BuildContext context) => context.push('/genres');
 
-    for (final item in items) {
-      for (final genre in item.genres) {
-        if (genre.slug.trim().isEmpty || genre.name.trim().isEmpty) continue;
-        bySlug.putIfAbsent(genre.slug, () => _HomeCategory.fromGenre(genre));
-      }
-    }
-
-    final categories = bySlug.values.toList()
-      ..sort((a, b) => a.label.compareTo(b.label));
-    return categories;
-  }
-
-  Future<void> _showCategorySheet(
-    BuildContext context,
-    List<_HomeCategory> categories,
-  ) async {
-    if (categories.isEmpty) {
-      context.go(_browseLocation(mode: _mode));
-      return;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppTheme.surface,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
-                  '${_mode.categoryTitle} ангилал',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(color: Colors.white10, height: 1),
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    return ListTile(
-                      title: Text(
-                        category.label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppTheme.textSecondary,
-                      ),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        context.go(
-                          _browseLocation(mode: _mode, category: category),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ─── App bar ──────────────────────────────────────────────────────────────────
@@ -280,24 +191,13 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
           child: Column(
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'VIZ',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.search_rounded, color: Colors.white),
-                    onPressed: () => context.go('/browse'),
-                    padding: EdgeInsets.zero,
-                  ),
-                ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const Icon(Icons.search_rounded, color: Colors.white),
+                  onPressed: () => context.go('/browse'),
+                  padding: EdgeInsets.zero,
+                ),
               ),
               SizedBox(
                 height: 36,
@@ -505,28 +405,9 @@ enum _HomeMode {
   };
 }
 
-class _HomeCategory {
-  final String label;
-  final String slug;
-
-  const _HomeCategory({required this.label, required this.slug});
-
-  factory _HomeCategory.fromGenre(Genre genre) =>
-      _HomeCategory(label: genre.name, slug: genre.slug);
-}
-
-String _browseLocation({
-  _HomeMode mode = _HomeMode.all,
-  _HomeCategory? category,
-}) {
-  final params = <String, String>{};
+String _browseLocation({_HomeMode mode = _HomeMode.all}) {
   final type = mode.queryValue;
-  if (type != null) params['type'] = type;
-  if (category != null) {
-    params['genre'] = category.slug;
-    params['genreLabel'] = category.label;
-  }
-
+  final params = type != null ? {'type': type} : <String, String>{};
   return Uri(
     path: '/browse',
     queryParameters: params.isEmpty ? null : params,

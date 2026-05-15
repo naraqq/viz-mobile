@@ -14,6 +14,7 @@ class ApiEndpoints {
   static const String notifications = '/notifications';
   static String notificationRead(int id) => '/notifications/$id/read';
 
+  static const String config = '/config';
   static const String home = '/home';
   static const String content = '/content';
   static const String genres = '/genres';

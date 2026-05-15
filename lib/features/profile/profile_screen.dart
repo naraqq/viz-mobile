@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/user.dart';
+import '../../core/providers/app_config_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -19,13 +20,15 @@ class ProfileScreen extends ConsumerWidget {
       );
     }
 
+    final reviewMode = ref.watch(reviewModeProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: CustomScrollView(
         slivers: [
-          _ProfileHeader(user: user, ref: ref),
+          _ProfileHeader(user: user, ref: ref, reviewMode: reviewMode),
           SliverToBoxAdapter(
-            child: _ProfileBody(user: user, ref: ref),
+            child: _ProfileBody(user: user, ref: ref, reviewMode: reviewMode),
           ),
         ],
       ),
@@ -38,8 +41,9 @@ class ProfileScreen extends ConsumerWidget {
 class _ProfileHeader extends StatelessWidget {
   final User user;
   final WidgetRef ref;
+  final bool reviewMode;
 
-  const _ProfileHeader({required this.user, required this.ref});
+  const _ProfileHeader({required this.user, required this.ref, required this.reviewMode});
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +117,7 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _SubscriptionBadge(user: user),
+                  _SubscriptionBadge(user: user, reviewMode: reviewMode),
                 ],
               ),
             ),
@@ -126,10 +130,13 @@ class _ProfileHeader extends StatelessWidget {
 
 class _SubscriptionBadge extends StatelessWidget {
   final User user;
-  const _SubscriptionBadge({required this.user});
+  final bool reviewMode;
+  const _SubscriptionBadge({required this.user, required this.reviewMode});
 
   @override
   Widget build(BuildContext context) {
+    if (reviewMode) return const SizedBox.shrink();
+
     if (user.hasActiveSubscription) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
@@ -188,8 +195,9 @@ class _SubscriptionBadge extends StatelessWidget {
 class _ProfileBody extends StatelessWidget {
   final User user;
   final WidgetRef ref;
+  final bool reviewMode;
 
-  const _ProfileBody({required this.user, required this.ref});
+  const _ProfileBody({required this.user, required this.ref, required this.reviewMode});
 
   @override
   Widget build(BuildContext context) {
@@ -201,14 +209,14 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Subscription expiry info
-          if (user.hasActiveSubscription && user.subscriptionEndsAt != null)
+          if (!reviewMode && user.hasActiveSubscription && user.subscriptionEndsAt != null)
             _InfoBanner(
               icon: Icons.calendar_today_rounded,
               text: '${_formatDate(user.subscriptionEndsAt!)} хүртэл идэвхтэй',
               color: Colors.green.shade700,
             ),
 
-          if (!user.hasActiveSubscription)
+          if (!reviewMode && !user.hasActiveSubscription)
             _InfoBanner(
               icon: Icons.bolt_rounded,
               text: 'Бүх кино, цуврал үзэхийн тулд багцаа сайжруулна уу',
@@ -225,16 +233,18 @@ class _ProfileBody extends StatelessWidget {
             label: 'Профайл засах',
             onTap: () => _showEditProfileSheet(context, ref, user),
           ),
-          _MenuTile(
-            icon: Icons.subscriptions_outlined,
-            label: 'Захиалгын багцууд',
-            onTap: () => context.push('/plans'),
-          ),
-          _MenuTile(
-            icon: Icons.video_library_outlined,
-            label: 'Миний түрээс',
-            onTap: () => _showRentalsSheet(context),
-          ),
+          if (!reviewMode) ...[
+            _MenuTile(
+              icon: Icons.subscriptions_outlined,
+              label: 'Захиалгын багцууд',
+              onTap: () => context.push('/plans'),
+            ),
+            _MenuTile(
+              icon: Icons.video_library_outlined,
+              label: 'Миний түрээс',
+              onTap: () => _showRentalsSheet(context),
+            ),
+          ],
 
           const SizedBox(height: 8),
 

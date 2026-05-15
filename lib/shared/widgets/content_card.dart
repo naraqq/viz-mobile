@@ -1,11 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/catalog_item.dart';
+import '../../core/providers/app_config_provider.dart';
 import '../../core/theme/app_theme.dart';
 import 'loading_shimmer.dart';
 
-class ContentCard extends StatelessWidget {
+class ContentCard extends ConsumerWidget {
   final CatalogItem item;
   final double width;
 
@@ -16,8 +18,9 @@ class ContentCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = item.posterUrl ?? item.backdropUrl;
+    final reviewMode = ref.watch(reviewModeProvider);
 
     return GestureDetector(
       onTap: () => item.isMovie
@@ -52,24 +55,26 @@ class ContentCard extends StatelessWidget {
                     else
                       _placeholder(),
 
-                    if (item.accessModel == 'free')
-                      Positioned(
-                        top: 5,
-                        left: 5,
-                        child: _Badge(
-                          label: 'ҮНЭГҮЙ',
-                          color: Colors.green.shade700,
+                    if (!reviewMode) ...[
+                      if (item.accessModel == 'free')
+                        Positioned(
+                          top: 5,
+                          left: 5,
+                          child: _Badge(
+                            label: 'ҮНЭГҮЙ',
+                            color: Colors.green.shade700,
+                          ),
+                        )
+                      else if (item.accessModel == 'rent')
+                        Positioned(
+                          top: 5,
+                          left: 5,
+                          child: _Badge(
+                            label: 'ТҮРЭЭС',
+                            color: Colors.orange.shade700,
+                          ),
                         ),
-                      )
-                    else if (item.accessModel == 'rent')
-                      Positioned(
-                        top: 5,
-                        left: 5,
-                        child: _Badge(
-                          label: 'ТҮРЭЭС',
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
+                    ],
                   ],
                 ),
               ),

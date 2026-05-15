@@ -179,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/logo_transparent.png',
                     height: 80,
                     width: 80,
                   ),

@@ -46,6 +46,9 @@ dependencies:
   # URL launcher
   url_launcher: ^6.3.1
 
+  # App version info (for force-update check)
+  package_info_plus: ^8.1.2
+
   # Push notifications
   onesignal_flutter: ^5.2.5
 
@@ -64,9 +67,9 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#000000"
-  image: assets/images/logo.png
+  image: assets/images/logo_transparent.png
   android_12:
-    image: assets/images/logo.png
+    image: assets/images/logo_transparent.png
     icon_background_color: "#000000"
   ios: true
   android: true
@@ -74,9 +77,9 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "assets/images/logo_black_bg.png"
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_foreground: "assets/images/logo_transparent.png"
   web:
     generate: false
 

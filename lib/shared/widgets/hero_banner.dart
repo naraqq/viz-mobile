@@ -58,33 +58,14 @@ class _HeroBannerState extends State<HeroBanner> {
             controller: _pageCtrl,
             itemCount: widget.items.length,
             onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (_, i) => _HeroPage(item: widget.items[i]),
+            itemBuilder: (_, i) => _HeroPage(
+              item: widget.items[i],
+              totalItems: widget.items.length,
+              currentPage: _currentPage,
+            ),
           ),
 
-          // Dots
-          if (widget.items.length > 1)
-            Positioned(
-              bottom: 76,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.items.length, (i) {
-                  final active = i == _currentPage;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: active ? 20 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: active ? Colors.white : Colors.white38,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
-            ),
-        ],
+          ],
       ),
     );
   }
@@ -92,7 +73,14 @@ class _HeroBannerState extends State<HeroBanner> {
 
 class _HeroPage extends StatelessWidget {
   final CatalogItem item;
-  const _HeroPage({required this.item});
+  final int totalItems;
+  final int currentPage;
+
+  const _HeroPage({
+    required this.item,
+    required this.totalItems,
+    required this.currentPage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +158,26 @@ class _HeroPage extends StatelessWidget {
                       shadows: [Shadow(blurRadius: 10, color: Colors.black87)],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  if (totalItems > 1) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(totalItems, (i) {
+                        final active = i == currentPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: active ? 20 : 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: active ? Colors.white : Colors.white38,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
                   // Buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
