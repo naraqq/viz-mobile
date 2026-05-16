@@ -768,16 +768,6 @@ class _EpisodeTile extends StatelessWidget {
                 ),
               ),
             ],
-            if (released && !hasVideo && canWatch) ...[
-              const SizedBox(height: 6),
-              const Padding(
-                padding: EdgeInsets.only(left: 130, right: 8),
-                child: Text(
-                  'Тоглуулах файл бэлэн биш байна',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                ),
-              ),
-            ],
           ],
         ),
       ),

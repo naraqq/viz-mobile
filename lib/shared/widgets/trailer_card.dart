@@ -1,6 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 String? normalizeTrailerKey(String? value) {
   final raw = value?.trim();
@@ -22,80 +21,50 @@ String? normalizeTrailerKey(String? value) {
   return raw;
 }
 
-class TrailerCard extends StatelessWidget {
+class TrailerCard extends StatefulWidget {
   final String title;
   final String trailerKey;
 
   const TrailerCard({super.key, required this.title, required this.trailerKey});
 
   @override
+  State<TrailerCard> createState() => _TrailerCardState();
+}
+
+class _TrailerCardState extends State<TrailerCard> {
+  late final YoutubePlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.trailerKey,
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+        enableCaption: false,
+        forceHD: false,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: 'https://img.youtube.com/vi/$trailerKey/hqdefault.jpg',
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: Colors.white10),
-              errorWidget: (_, __, ___) => Container(
-                color: Colors.white10,
-                child: const Icon(
-                  Icons.ondemand_video_outlined,
-                  color: AppTheme.textSecondary,
-                  size: 42,
-                ),
-              ),
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0xAA000000)],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 10,
-              child: Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.62),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white70),
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Трейлер · $title',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      child: YoutubePlayer(
+        controller: _controller,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: Colors.red,
+        progressColors: const ProgressBarColors(
+          playedColor: Colors.red,
+          handleColor: Colors.redAccent,
         ),
       ),
     );
