@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_loading_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/browse/browse_screen.dart';
+import '../../features/genres/genre_content_screen.dart';
+import '../../features/genres/genre_list_screen.dart';
+import '../../features/update/force_update_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/movies/movie_detail_screen.dart';
@@ -14,6 +17,7 @@ import '../../features/shows/show_detail_screen.dart';
 import '../../shared/widgets/viz_bottom_nav.dart';
 import '../models/season.dart';
 import '../models/subtitle_track.dart';
+import '../providers/app_config_provider.dart';
 import '../providers/auth_provider.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -28,6 +32,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/auth/loading',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      // Force update takes highest priority — blocks all navigation.
+      if (ref.read(forceUpdateProvider)) {
+        return state.matchedLocation == '/force-update' ? null : '/force-update';
+      }
+
       final authState = ref.read(authProvider);
       final isLoadingRoute = state.matchedLocation == '/auth/loading';
 
@@ -58,19 +67,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/browse',
-            pageBuilder: (context, state) {
-              final query = state.uri.queryParameters;
-              return NoTransitionPage(
-                key: state.pageKey,
-                child: BrowseScreen(
-                  initialSearch: query['search'],
-                  initialGenre: query['genre'],
-                  initialGenreLabel: query['genreLabel'],
-                  initialSort: query['sort'],
-                  initialType: query['type'],
-                ),
-              );
-            },
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const BrowseScreen(),
+            ),
           ),
           GoRoute(
             path: '/profile',
@@ -94,6 +94,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             NoTransitionPage(key: state.pageKey, child: const PlansScreen()),
       ),
       GoRoute(
+        path: '/force-update',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const ForceUpdateScreen(),
+        ),
+      ),
+      GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const LoginScreen()),
@@ -104,6 +111,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const AuthLoadingScreen(),
         ),
+      ),
+      GoRoute(
+        path: '/genres',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const GenreListScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/genres/:slug',
+        pageBuilder: (context, state) {
+          final slug = state.pathParameters['slug']!;
+          final label = state.uri.queryParameters['label'] ?? slug;
+          return NoTransitionPage(
+            key: state.pageKey,
+            child: GenreContentScreen(slug: slug, label: label),
+          );
+        },
       ),
       GoRoute(
         path: '/movies/:slug',
@@ -157,18 +182,18 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 class AuthRouterRefreshNotifier extends ChangeNotifier {
   AuthRouterRefreshNotifier(this._ref) {
-    _subscription = _ref.listen<AuthState>(
-      authProvider,
-      (_, __) => notifyListeners(),
-    );
+    _authSub = _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    _updateSub = _ref.listen<bool>(forceUpdateProvider, (_, __) => notifyListeners());
   }
 
   final Ref _ref;
-  late final ProviderSubscription<AuthState> _subscription;
+  late final ProviderSubscription<AuthState> _authSub;
+  late final ProviderSubscription<bool> _updateSub;
 
   @override
   void dispose() {
-    _subscription.close();
+    _authSub.close();
+    _updateSub.close();
     super.dispose();
   }
 }

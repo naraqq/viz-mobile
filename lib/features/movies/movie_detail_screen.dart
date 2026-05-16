@@ -290,38 +290,6 @@ class MovieDetailScreen extends ConsumerWidget {
                           minimumSize: const Size(double.infinity, 48),
                         ),
                       )
-                    else if (canPlay)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: AppTheme.textSecondary,
-                              size: 18,
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Видео хараахан бэлэн болоогүй байна.',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
                     else if (!canPlay) ...[
                       if (movie.isRental)
                         OutlinedButton.icon(

@@ -22,13 +22,14 @@ class _HeroBannerState extends State<HeroBanner> {
   @override
   void initState() {
     super.initState();
-    _pageCtrl = PageController();
+    // Start at a large virtual offset so the user can swipe left and right indefinitely.
+    final initialPage = widget.items.length * 500;
+    _pageCtrl = PageController(initialPage: initialPage);
     if (widget.items.length > 1) {
       _autoTimer = Timer.periodic(const Duration(seconds: 6), (_) {
         if (!mounted) return;
-        final next = (_currentPage + 1) % widget.items.length;
         _pageCtrl.animateToPage(
-          next,
+          _pageCtrl.page!.round() + 1,
           duration: const Duration(milliseconds: 600),
           curve: Curves.easeInOut,
         );
@@ -49,49 +50,45 @@ class _HeroBannerState extends State<HeroBanner> {
     final screenH = MediaQuery.of(context).size.height;
     final bannerH = (screenH * 0.62).clamp(440.0, 580.0);
 
-    return SizedBox(
-      height: bannerH,
-      child: Stack(
-        children: [
-          // Pages
-          PageView.builder(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: bannerH,
+          child: PageView.builder(
             controller: _pageCtrl,
-            itemCount: widget.items.length,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (_, i) => _HeroPage(item: widget.items[i]),
+            onPageChanged: (i) => setState(() => _currentPage = i % widget.items.length),
+            itemBuilder: (_, i) => _HeroPage(item: widget.items[i % widget.items.length]),
           ),
-
-          // Dots
-          if (widget.items.length > 1)
-            Positioned(
-              bottom: 76,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.items.length, (i) {
-                  final active = i == _currentPage;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: active ? 20 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: active ? Colors.white : Colors.white38,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
-            ),
+        ),
+        if (widget.items.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.items.length, (i) {
+              final active = i == _currentPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: active ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: active ? Colors.white : Colors.white38,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
         ],
-      ),
+      ],
     );
   }
 }
 
 class _HeroPage extends StatelessWidget {
   final CatalogItem item;
+
   const _HeroPage({required this.item});
 
   @override
@@ -170,7 +167,7 @@ class _HeroPage extends StatelessWidget {
                       shadows: [Shadow(blurRadius: 10, color: Colors.black87)],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   // Buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

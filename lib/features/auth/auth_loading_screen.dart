@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../../core/providers/app_config_provider.dart';
 
-class AuthLoadingScreen extends StatefulWidget {
+class AuthLoadingScreen extends ConsumerStatefulWidget {
   const AuthLoadingScreen({super.key});
 
   @override
-  State<AuthLoadingScreen> createState() => _AuthLoadingScreenState();
+  ConsumerState<AuthLoadingScreen> createState() => _AuthLoadingScreenState();
 }
 
-class _AuthLoadingScreenState extends State<AuthLoadingScreen>
+class _AuthLoadingScreenState extends ConsumerState<AuthLoadingScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _scale;
@@ -30,12 +33,40 @@ class _AuthLoadingScreenState extends State<AuthLoadingScreen>
       ),
     );
     _ctrl.forward();
+    _checkForceUpdate();
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkForceUpdate() async {
+    try {
+      final config = await ref.read(appConfigProvider.future);
+      if (!mounted) return;
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      if (_isUpdateRequired(info.version, config.minVersion)) {
+        ref.read(forceUpdateProvider.notifier).state = true;
+      }
+    } catch (_) {
+      // Config fetch failed — skip force-update check silently.
+    }
+  }
+
+  bool _isUpdateRequired(String current, String minimum) {
+    final curr = current.split('+').first;
+    final currParts = curr.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final minParts = minimum.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (var i = 0; i < 3; i++) {
+      final c = i < currParts.length ? currParts[i] : 0;
+      final m = i < minParts.length ? minParts[i] : 0;
+      if (c < m) return true;
+      if (c > m) return false;
+    }
+    return false;
   }
 
   @override
