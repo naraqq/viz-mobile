@@ -178,10 +178,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 80,
-                    width: 80,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.asset(
+                      'assets/images/app_icon_black.png',
+                      height: 80,
+                      width: 80,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -303,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/google_logo.png',
+                                'assets/images/google_logo.webp',
                                 height: 20,
                                 width: 20,
                                 errorBuilder: (_, __, ___) => const Icon(

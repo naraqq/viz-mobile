@@ -50,7 +50,7 @@ class _AuthLoadingScreenState extends State<AuthLoadingScreen>
             child: Transform.scale(
               scale: _scale.value,
               child: Image.asset(
-                'assets/images/logo.png',
+                'assets/images/logo_transparent.png',
                 width: 160,
                 height: 160,
               ),
