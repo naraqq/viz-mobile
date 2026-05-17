@@ -191,14 +191,6 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.search_rounded, color: Colors.white),
-                  onPressed: () => context.go('/browse'),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
               SizedBox(
                 height: 36,
                 child: ListView(
