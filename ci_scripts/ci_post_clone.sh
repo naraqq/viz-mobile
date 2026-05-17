@@ -4,23 +4,25 @@ set -e
 echo "=== ci_post_clone start ==="
 echo "PWD: $(pwd)"
 echo "CI_WORKSPACE: $CI_WORKSPACE"
-echo "HOME: $HOME"
 
-# Determine repo root — CI_WORKSPACE is set by Xcode Cloud
 REPO_ROOT="${CI_WORKSPACE:-$(pwd)}"
-cd "$REPO_ROOT"
+FLUTTER_SDK="$HOME/flutter"
 
-# Install Flutter via Homebrew (Homebrew is pre-installed on Xcode Cloud agents)
-echo "=== Installing Flutter via Homebrew ==="
-brew install --cask flutter
+# Clone Flutter stable SDK
+echo "=== Cloning Flutter SDK (stable) ==="
+git clone https://github.com/flutter/flutter.git \
+  --depth 1 \
+  --branch stable \
+  "$FLUTTER_SDK"
 
-FLUTTER_BIN="$(brew --prefix)/bin/flutter"
+export PATH="$PATH:$FLUTTER_SDK/bin"
 
 echo "=== Flutter version ==="
-"$FLUTTER_BIN" --version --no-version-check
+flutter --version --no-version-check
 
 echo "=== flutter pub get ==="
-"$FLUTTER_BIN" pub get
+cd "$REPO_ROOT"
+flutter pub get
 
 echo "=== pod install ==="
 cd "$REPO_ROOT/ios"
