@@ -64,6 +64,24 @@
 			</array>
 		</dict>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>khanbank</string>
+		<string>golomt</string>
+		<string>tdb</string>
+		<string>statebank</string>
+		<string>capitronbank</string>
+		<string>xacbank</string>
+		<string>ubcbank</string>
+		<string>mbank</string>
+		<string>monpay</string>
+		<string>qpay</string>
+		<string>ardapp</string>
+		<string>socialpay</string>
+		<string>lend</string>
+		<string>bogdbank</string>
+		<string>nibank</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app does not use your location. This permission is requested by a third-party SDK.</string>
 	<key>UIStatusBarHidden</key>

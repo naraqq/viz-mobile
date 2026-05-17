@@ -619,12 +619,20 @@ class _BankAppTile extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         final uri = Uri.tryParse(bank.link);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${bank.name} апп нээж чадсангүй.')),
-          );
+        if (uri == null) return;
+        try {
+          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (!launched && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${bank.name} апп суулгаагүй байна.')),
+            );
+          }
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${bank.name} апп нээж чадсангүй.')),
+            );
+          }
         }
       },
       child: SizedBox(
