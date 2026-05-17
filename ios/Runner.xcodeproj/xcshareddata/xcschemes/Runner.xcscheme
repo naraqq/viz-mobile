@@ -97,5 +97,35 @@
    <ArchiveAction
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptExecutionAction">
+            <ActionContent
+               title = "Setup Flutter and Pods"
+               scriptText = "set -e
+# Install Flutter via Homebrew if not found
+if ! command -v flutter &gt; /dev/null 2&gt;&amp;1; then
+  HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask flutter
+fi
+FLUTTER_BIN=&quot;$(command -v flutter 2&gt;/dev/null || echo /opt/homebrew/bin/flutter)&quot;
+# Flutter pub get from project root
+cd &quot;$SRCROOT/..&quot;
+&quot;$FLUTTER_BIN&quot; pub get
+# Pod install
+cd &quot;$SRCROOT&quot;
+LANG=en_US.UTF-8 pod install --repo-update
+">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "97C146ED1CF9000F007C117D"
+                     BuildableName = "Runner.app"
+                     BlueprintName = "Runner"
+                     ReferencedContainer = "container:Runner.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
    </ArchiveAction>
 </Scheme>
