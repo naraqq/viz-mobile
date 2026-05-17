@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,37 +34,28 @@ class VizBottomNav extends ConsumerWidget {
       backgroundColor: AppTheme.background,
       extendBody: true,
       body: child,
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, bottom + 14),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              height: 62,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A).withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  width: 0.8,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(_tabs.length, (i) {
-                  final tab = _tabs[i];
-                  return _NavItem(
-                    icon: tab.icon,
-                    activeIcon: tab.activeIcon,
-                    label: tab.label,
-                    isSelected: i == index,
-                    badge: tab.path == '/notifications' ? unreadCount : 0,
-                    onTap: () => context.go(tab.path),
-                  );
-                }),
-              ),
-            ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.background,
+          border: Border(
+            top: BorderSide(color: Color(0xFF2A2A2A), width: 0.5),
+          ),
+        ),
+        padding: EdgeInsets.only(bottom: bottom),
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: List.generate(_tabs.length, (i) {
+              final tab = _tabs[i];
+              return _NavItem(
+                icon: tab.icon,
+                activeIcon: tab.activeIcon,
+                label: tab.label,
+                isSelected: i == index,
+                badge: tab.path == '/notifications' ? unreadCount : 0,
+                onTap: () => context.go(tab.path),
+              );
+            }),
           ),
         ),
       ),
@@ -92,49 +82,32 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeInOut,
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 14 : 14,
-          vertical: 10,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withValues(alpha: 0.11)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _IconWithBadge(
-              icon: isSelected ? activeIcon : icon,
-              color: isSelected ? Colors.white : const Color(0xFF5A5A5A),
-              badge: badge,
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeInOut,
-              child: isSelected
-                  ? Padding(
-                      padding: const EdgeInsets.only(left: 7),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.1,
-                        ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
+    final color = isSelected ? Colors.white : const Color(0xFF6B6B6B);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 150),
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            letterSpacing: 0.1,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _IconWithBadge(
+                icon: isSelected ? activeIcon : icon,
+                color: color,
+                badge: badge,
+              ),
+              const SizedBox(height: 4),
+              Text(label),
+            ],
+          ),
         ),
       ),
     );
@@ -157,11 +130,14 @@ class _IconWithBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Icon(icon, color: color, size: 22),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 150),
+          child: Icon(icon, color: color, size: 24, key: ValueKey(icon)),
+        ),
         if (badge > 0)
           Positioned(
-            top: -5,
-            right: -7,
+            top: -4,
+            right: -8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
               decoration: BoxDecoration(

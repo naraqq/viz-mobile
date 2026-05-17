@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/catalog_item.dart';
 import '../../core/models/content_row.dart';
 import '../../core/models/continue_watching_item.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/home_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/content_card.dart';
@@ -86,15 +87,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               const SizedBox(width: 10),
                           itemBuilder: (context, i) {
                             final item = continueWatching[i];
+                            final user = ref.read(authProvider).user;
+                            final hasAccess = item.isFree ||
+                                (item.requiresSub &&
+                                    (user?.hasActiveSubscription == true)) ||
+                                (item.isRental && item.rentalActive);
                             return WideContentCard(
                               imageUrl: item.thumbnailUrl,
                               title: item.isEpisode
                                   ? '${item.showTitle ?? item.title} · S${item.seasonNumber}E${item.episodeNumber}'
                                   : item.title,
                               progress: item.progress,
-                              onTap: () => item.isMovie
-                                  ? context.push('/movies/${item.slug}')
-                                  : context.push('/shows/${item.slug}'),
+                              onTap: () {
+                                if (!hasAccess && item.requiresSub) {
+                                  context.push('/plans');
+                                  return;
+                                }
+                                item.isMovie
+                                    ? context.push('/movies/${item.slug}')
+                                    : context.push('/shows/${item.slug}');
+                              },
                             );
                           },
                         ),
