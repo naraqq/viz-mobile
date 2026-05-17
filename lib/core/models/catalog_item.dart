@@ -12,6 +12,7 @@ class CatalogItem {
   final double? voteAverage;
   final List<Genre> genres;
   final String? accessModel; // 'free', 'sub', 'rent'
+  final double? rentalPrice;
 
   const CatalogItem({
     required this.id,
@@ -24,6 +25,7 @@ class CatalogItem {
     this.voteAverage,
     this.genres = const [],
     this.accessModel,
+    this.rentalPrice,
   });
 
   bool get isMovie => contentType == 'movie';
@@ -42,5 +44,6 @@ class CatalogItem {
             .map((g) => Genre.fromJson(g as Map<String, dynamic>))
             .toList(),
         accessModel: json['access_model'] as String?,
+        rentalPrice: readDouble(json['rental_price']),
       );
 }

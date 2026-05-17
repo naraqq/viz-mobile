@@ -12,7 +12,10 @@ import '../../features/home/home_screen.dart';
 import '../../features/movies/movie_detail_screen.dart';
 import '../../features/player/player_screen.dart';
 import '../../features/plans/plans_screen.dart';
+import '../../features/profile/about_screen.dart';
+import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/profile/rentals_screen.dart';
 import '../../features/shows/show_detail_screen.dart';
 import '../../shared/widgets/viz_bottom_nav.dart';
 import '../models/season.dart';
@@ -92,6 +95,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/plans',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const PlansScreen()),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const EditProfileScreen()),
+      ),
+      GoRoute(
+        path: '/profile/rentals',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const RentalsScreen()),
+      ),
+      GoRoute(
+        path: '/profile/about',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const AboutScreen()),
       ),
       GoRoute(
         path: '/force-update',

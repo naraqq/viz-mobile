@@ -60,19 +60,14 @@ class ContentCard extends ConsumerWidget {
                         Positioned(
                           top: 5,
                           left: 5,
-                          child: _Badge(
-                            label: 'ҮНЭГҮЙ',
-                            color: Colors.green.shade700,
-                          ),
+                          child: _Badge(label: 'ҮНЭГҮЙ', color: Colors.green.shade700),
                         )
                       else if (item.accessModel == 'rent')
                         Positioned(
-                          top: 5,
-                          left: 5,
-                          child: _Badge(
-                            label: 'ТҮРЭЭС',
-                            color: Colors.orange.shade700,
-                          ),
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: _RentBanner(price: item.rentalPrice),
                         ),
                     ],
                   ],
@@ -91,6 +86,53 @@ class ContentCard extends ConsumerWidget {
           child: Icon(Icons.movie_outlined, color: AppTheme.textSecondary, size: 28),
         ),
       );
+}
+
+class _RentBanner extends StatelessWidget {
+  final double? price;
+  const _RentBanner({this.price});
+
+  @override
+  Widget build(BuildContext context) {
+    final priceText = price != null
+        ? '${price!.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}₮'
+        : '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Colors.black87, Colors.transparent],
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade700,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: const Text(
+              'ТҮРЭЭС',
+              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (priceText.isNotEmpty)
+            Text(
+              priceText,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Badge extends StatelessWidget {

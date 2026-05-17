@@ -1,7 +1,12 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
 import '../models/user.dart';
@@ -133,11 +138,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> signInWithGoogle() async {
     state = state.clearError();
     try {
-      final provider = fb.GoogleAuthProvider()
-        ..addScope('email')
-        ..addScope('profile');
-      final fbUser =
-          await fb.FirebaseAuth.instance.signInWithProvider(provider);
+      final googleUser = await GoogleSignIn(scopes: ['email', 'profile']).signIn();
+      if (googleUser == null) {
+        state = state.copyWith(error: 'Google нэвтрэлт цуцлагдлаа.');
+        return false;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = fb.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(credential);
       final firebaseIdToken = await fbUser.user!.getIdToken();
 
       final res = await _api.post<Map<String, dynamic>>(
@@ -163,6 +174,67 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     }
   }
+
+  Future<bool> signInWithApple() async {
+    state = state.clearError();
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final oauthCredential = fb.OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+      final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(oauthCredential);
+      final firebaseIdToken = await fbUser.user!.getIdToken();
+
+      final res = await _api.post<Map<String, dynamic>>(
+        ApiEndpoints.appleAuth,
+        data: {'id_token': firebaseIdToken},
+      );
+      final token = res.data!['token'] as String;
+      await _api.saveToken(token);
+      final user = User.fromJson(res.data!['user'] as Map<String, dynamic>);
+      final needsPassword = res.data!['needs_password'] as bool? ?? false;
+      OneSignal.login(user.id.toString());
+      state = AuthState(user: user, needsPassword: needsPassword);
+      return true;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        state = state.copyWith(error: 'Apple нэвтрэлт цуцлагдлаа.');
+      } else {
+        state = state.copyWith(error: 'Apple нэвтрэлт амжилтгүй: ${e.message}');
+      }
+      return false;
+    } on fb.FirebaseAuthException catch (e) {
+      state = state.copyWith(error: 'Firebase: ${e.code} — ${e.message}');
+      return false;
+    } on DioException catch (e) {
+      state = state.copyWith(error: _extractError(e));
+      return false;
+    } catch (e) {
+      final s = e.toString();
+      state = state.copyWith(error: s.length > 120 ? s.substring(0, 120) : s);
+      return false;
+    }
+  }
+
+  String _generateNonce([int length = 32]) {
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final rng = Random.secure();
+    return List.generate(length, (_) => chars[rng.nextInt(chars.length)]).join();
+  }
+
+  String _sha256(String input) =>
+      sha256.convert(utf8.encode(input)).toString();
 
   Future<bool> setPassword(String password) async {
     state = state.copyWith(isLoading: true, error: null);

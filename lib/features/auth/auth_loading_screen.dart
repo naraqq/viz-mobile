@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/providers/app_config_provider.dart';
@@ -34,6 +35,7 @@ class _AuthLoadingScreenState extends ConsumerState<AuthLoadingScreen>
     );
     _ctrl.forward();
     _checkForceUpdate();
+    WidgetsBinding.instance.addPostFrameCallback((_) => FlutterNativeSplash.remove());
   }
 
   @override
@@ -81,7 +83,7 @@ class _AuthLoadingScreenState extends ConsumerState<AuthLoadingScreen>
             child: Transform.scale(
               scale: _scale.value,
               child: Image.asset(
-                'assets/images/logo_transparent.png',
+                'assets/images/app_icon_black.png',
                 width: 160,
                 height: 160,
               ),

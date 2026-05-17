@@ -9,6 +9,7 @@ class ApiEndpoints {
   static const String logout = '/auth/logout';
   static const String user = '/auth/user';
   static const String googleAuth = '/auth/google';
+  static const String appleAuth = '/auth/apple';
   static const String setPassword = '/auth/set-password';
 
   static const String notifications = '/notifications';

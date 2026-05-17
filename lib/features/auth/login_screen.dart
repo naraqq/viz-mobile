@@ -18,6 +18,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscure = true;
   bool _rememberMe = true;
   bool _googleLoading = false;
+  bool _appleLoading = false;
 
   @override
   void dispose() {
@@ -25,6 +26,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passCtrl.dispose();
     super.dispose();
   }
+
+  bool get _anyLoading => _googleLoading || _appleLoading;
 
   Future<void> _googleSignIn() async {
     setState(() => _googleLoading = true);
@@ -43,6 +46,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error ?? 'Google нэвтрэлт амжилтгүй боллоо'),
+          backgroundColor: AppTheme.primary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _appleSignIn() async {
+    setState(() => _appleLoading = true);
+    final ok = await ref.read(authProvider.notifier).signInWithApple();
+    if (!mounted) return;
+    setState(() => _appleLoading = false);
+    if (ok) {
+      final needsPassword = ref.read(authProvider).needsPassword;
+      if (needsPassword) {
+        await _showSetPasswordDialog();
+      } else {
+        context.go('/');
+      }
+    } else {
+      final error = ref.read(authProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Apple нэвтрэлт амжилтгүй боллоо'),
           backgroundColor: AppTheme.primary,
         ),
       );
@@ -256,7 +282,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 18),
                   ElevatedButton(
-                    onPressed: (isLoading || _googleLoading) ? null : _submit,
+                    onPressed: (isLoading || _anyLoading) ? null : _submit,
                     child: isLoading
                         ? const SizedBox(
                             height: 20,
@@ -284,55 +310,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  // Google button
                   OutlinedButton(
-                    onPressed: (isLoading || _googleLoading)
-                        ? null
-                        : _googleSignIn,
+                    onPressed: (isLoading || _anyLoading) ? null : _googleSignIn,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white24),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: _googleLoading
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white54),
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
                                 'assets/images/google_logo.webp',
-                                height: 20,
-                                width: 20,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.g_mobiledata_rounded,
-                                  color: Colors.white70,
-                                  size: 22,
-                                ),
+                                height: 20, width: 20,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.g_mobiledata_rounded, color: Colors.white70, size: 22),
                               ),
                               const SizedBox(width: 10),
-                              const Text(
-                                'Google-ээр нэвтрэх',
-                                style: TextStyle(
-                                    color: Colors.white70, fontSize: 15),
-                              ),
+                              const Text('Google-ээр нэвтрэх',
+                                  style: TextStyle(color: Colors.white70, fontSize: 15)),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Apple button
+                  OutlinedButton(
+                    onPressed: (isLoading || _anyLoading) ? null : _appleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: _appleLoading
+                        ? const SizedBox(
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.apple, color: Colors.white70, size: 22),
+                              SizedBox(width: 10),
+                              Text('Apple-ээр нэвтрэх',
+                                  style: TextStyle(color: Colors.white70, fontSize: 15)),
                             ],
                           ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Бүртгэл үүсгэхийн тулд Google-ээр нэвтэрнэ үү,\nэсвэл админтай холбогдоно уу.',
+                    'Бүртгэл үүсгэхийн тулд нийгмийн сүлжээгээр нэвтэрнэ үү,\nэсвэл админтай холбогдоно уу.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                      height: 1.5,
-                    ),
+                    style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
                   ),
                 ],
               ),

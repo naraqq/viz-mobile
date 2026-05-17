@@ -15,7 +15,7 @@ class ProfileScreen extends ConsumerWidget {
 
     if (user == null) {
       return const Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
@@ -23,144 +23,245 @@ class ProfileScreen extends ConsumerWidget {
     final reviewMode = ref.watch(reviewModeProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: Colors.black,
       body: CustomScrollView(
         slivers: [
-          _ProfileHeader(user: user, ref: ref, reviewMode: reviewMode),
+          _buildHeader(context, user, ref, reviewMode),
           SliverToBoxAdapter(
-            child: _ProfileBody(user: user, ref: ref, reviewMode: reviewMode),
+            child: _buildBody(context, user, ref, reviewMode),
           ),
         ],
       ),
     );
   }
-}
 
-// ─── Header ───────────────────────────────────────────────────────────────────
-
-class _ProfileHeader extends StatelessWidget {
-  final User user;
-  final WidgetRef ref;
-  final bool reviewMode;
-
-  const _ProfileHeader({required this.user, required this.ref, required this.reviewMode});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader(BuildContext context, User user, WidgetRef ref, bool reviewMode) {
     return SliverAppBar(
-      expandedHeight: 240,
+      expandedHeight: 260,
       pinned: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: Colors.black,
       automaticallyImplyLeading: false,
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Gradient background
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF2A0A0A), AppTheme.background],
-                  stops: [0.0, 1.0],
-                ),
-              ),
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF3A0000), Colors.black],
+              stops: [0.0, 1.0],
             ),
-            // Content
-            SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 8),
-                  // Avatar
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primary,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primary.withValues(alpha: 0.4),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                        ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
+                // Avatar
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primary,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.5),
+                        blurRadius: 24,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  user.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    user.email,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 13,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user.email,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
                   ),
-                  const SizedBox(height: 10),
-                  _SubscriptionBadge(user: user, reviewMode: reviewMode),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+                if (!reviewMode) _SubscriptionBadge(user: user),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildBody(BuildContext context, User user, WidgetRef ref, bool reviewMode) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Subscription banner
+          if (!reviewMode && user.hasActiveSubscription && user.subscriptionEndsAt != null) ...[
+            const SizedBox(height: 16),
+            _Banner(
+              icon: Icons.calendar_today_rounded,
+              text: '${_formatDate(user.subscriptionEndsAt!)} хүртэл идэвхтэй',
+              color: Colors.green,
+            ),
+          ],
+          if (!reviewMode && !user.hasActiveSubscription) ...[
+            const SizedBox(height: 16),
+            _Banner(
+              icon: Icons.bolt_rounded,
+              text: 'Бүх контент үзэхийн тулд багцаа сайжруулна уу',
+              color: AppTheme.primary,
+              onTap: () => context.push('/plans'),
+            ),
+          ],
+
+          const SizedBox(height: 28),
+
+          // Account card
+          _SectionLabel('Бүртгэл'),
+          const SizedBox(height: 8),
+          _Card(
+            children: [
+              _Tile(
+                icon: Icons.person_outline_rounded,
+                label: 'Профайл засах',
+                onTap: () => context.push('/profile/edit'),
+              ),
+              if (!reviewMode) ...[
+                _Divider(),
+                _Tile(
+                  icon: Icons.workspace_premium_outlined,
+                  label: 'Захиалгын багцууд',
+                  onTap: () => context.push('/plans'),
+                ),
+                _Divider(),
+                _Tile(
+                  icon: Icons.video_library_outlined,
+                  label: 'Миний түрээс',
+                  onTap: () => context.push('/profile/rentals'),
+                ),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // App card
+          _SectionLabel('Апп'),
+          const SizedBox(height: 8),
+          _Card(
+            children: [
+              _Tile(
+                icon: Icons.info_outline_rounded,
+                label: 'Аппын тухай',
+                onTap: () => context.push('/profile/about'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Sign out card
+          _Card(
+            children: [
+              _Tile(
+                icon: Icons.logout_rounded,
+                label: 'Гарах',
+                color: AppTheme.primary,
+                showChevron: false,
+                onTap: () => _confirmLogout(context, ref),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Гарах',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Та бүртгэлээсээ гарахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Болих', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(authProvider.notifier).logout();
+            },
+            child: const Text(
+              'Гарах',
+              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
+
+// ─── Subscription badge ────────────────────────────────────────────────────────
 
 class _SubscriptionBadge extends StatelessWidget {
   final User user;
-  final bool reviewMode;
-  const _SubscriptionBadge({required this.user, required this.reviewMode});
+  const _SubscriptionBadge({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    if (reviewMode) return const SizedBox.shrink();
-
     if (user.hasActiveSubscription) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
           color: AppTheme.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.6)),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.5)),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.workspace_premium_rounded,
-              color: AppTheme.primary,
-              size: 14,
-            ),
-            const SizedBox(width: 6),
-            const Text(
+            Icon(Icons.workspace_premium_rounded, color: AppTheme.primary, size: 14),
+            SizedBox(width: 6),
+            Text(
               'Захиалагч',
-              style: TextStyle(
-                color: AppTheme.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -180,7 +281,7 @@ class _SubscriptionBadge extends StatelessWidget {
             Icon(Icons.bolt_rounded, color: AppTheme.textSecondary, size: 14),
             SizedBox(width: 4),
             Text(
-              'Үнэгүй багц · Сайжруулах',
+              'Үнэгүй · Сайжруулах',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
           ],
@@ -190,389 +291,62 @@ class _SubscriptionBadge extends StatelessWidget {
   }
 }
 
-// ─── Body ─────────────────────────────────────────────────────────────────────
-
-class _ProfileBody extends StatelessWidget {
-  final User user;
-  final WidgetRef ref;
-  final bool reviewMode;
-
-  const _ProfileBody({required this.user, required this.ref, required this.reviewMode});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 8),
-
-          // Subscription expiry info
-          if (!reviewMode && user.hasActiveSubscription && user.subscriptionEndsAt != null)
-            _InfoBanner(
-              icon: Icons.calendar_today_rounded,
-              text: '${_formatDate(user.subscriptionEndsAt!)} хүртэл идэвхтэй',
-              color: Colors.green.shade700,
-            ),
-
-          if (!reviewMode && !user.hasActiveSubscription)
-            _InfoBanner(
-              icon: Icons.bolt_rounded,
-              text: 'Бүх кино, цуврал үзэхийн тулд багцаа сайжруулна уу',
-              color: AppTheme.primary,
-              onTap: () => context.push('/plans'),
-            ),
-
-          const SizedBox(height: 24),
-
-          // Account section
-          _SectionHeader(label: 'Бүртгэл'),
-          _MenuTile(
-            icon: Icons.edit_outlined,
-            label: 'Профайл засах',
-            onTap: () => _showEditProfileSheet(context, ref, user),
-          ),
-          if (!reviewMode) ...[
-            _MenuTile(
-              icon: Icons.subscriptions_outlined,
-              label: 'Захиалгын багцууд',
-              onTap: () => context.push('/plans'),
-            ),
-            _MenuTile(
-              icon: Icons.video_library_outlined,
-              label: 'Миний түрээс',
-              onTap: () => _showRentalsSheet(context),
-            ),
-          ],
-
-          const SizedBox(height: 8),
-
-          // App section
-          _SectionHeader(label: 'Апп'),
-          _MenuTile(
-            icon: Icons.info_outline_rounded,
-            label: 'VIZ-ийн тухай',
-            onTap: () => _showAbout(context),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Sign out
-          _MenuTile(
-            icon: Icons.logout_rounded,
-            label: 'Гарах',
-            color: AppTheme.primary,
-            onTap: () => _confirmLogout(context, ref),
-          ),
-
-          const SizedBox(height: 40),
-          const Text(
-            'VIZ · v1.0.0',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white12, fontSize: 11),
-          ),
-          const SizedBox(height: 90),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          'Гарах',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Та бүртгэлээсээ гарахдаа итгэлтэй байна уу?',
-          style: TextStyle(color: AppTheme.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Болих',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref.read(authProvider.notifier).logout();
-            },
-            child: const Text(
-              'Гарах',
-              style: TextStyle(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRentalsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Icon(
-              Icons.video_library_outlined,
-              color: AppTheme.textSecondary,
-              size: 40,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Миний түрээс',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Түрээсэлсэн үзвэрүүд энд харагдана. Түрээс идэвхжсэнээс хойш 72 цаг хүчинтэй.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAbout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          'VIZ',
-          style: TextStyle(
-            color: AppTheme.primary,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 3,
-          ),
-        ),
-        content: const Text(
-          'Таны үзвэрийн апп.\n\nХувилбар 1.0.0\n\nviz24.net',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Хаах',
-              style: TextStyle(color: AppTheme.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditProfileSheet(BuildContext context, WidgetRef ref, User user) {
-    final nameCtrl = TextEditingController(text: user.name);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Профайл засах',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nameCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Харагдах нэр',
-                labelStyle: const TextStyle(color: AppTheme.textSecondary),
-                filled: true,
-                fillColor: AppTheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                final api = ref.read(apiClientProvider);
-                try {
-                  await api.patch<dynamic>(
-                    '/profile',
-                    data: {'name': nameCtrl.text.trim()},
-                  );
-                  await ref.read(authProvider.notifier).refreshUser();
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Профайл шинэчлэгдлээ')),
-                    );
-                  }
-                } catch (_) {
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Профайл шинэчлэхэд алдаа гарлаа'),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Хадгалах',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-}
-
 // ─── Reusable widgets ─────────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  const _SectionHeader({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
-      child: Text(
-        label.toUpperCase(),
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  final IconData icon;
+class _SectionLabel extends StatelessWidget {
   final String text;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _InfoBanner({
-    required this.icon,
-    required this.text,
-    required this.color,
-    this.onTap,
-  });
+  const _SectionLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(text, style: TextStyle(color: color, fontSize: 13)),
-            ),
-            if (onTap != null)
-              Icon(Icons.chevron_right_rounded, color: color, size: 18),
-          ],
-        ),
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: AppTheme.textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
       ),
     );
   }
 }
 
-class _MenuTile extends StatelessWidget {
+class _Card extends StatelessWidget {
+  final List<Widget> children;
+  const _Card({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1C),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(height: 1, thickness: 1, color: Color(0xFF2A2A2A), indent: 52);
+  }
+}
+
+class _Tile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final Color? color;
+  final bool showChevron;
 
-  const _MenuTile({
+  const _Tile({
     required this.icon,
     required this.label,
     required this.onTap,
     this.color,
+    this.showChevron = true,
   });
 
   @override
@@ -582,32 +356,57 @@ class _MenuTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         splashColor: Colors.white10,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
-              Icon(icon, color: c, size: 22),
+              Icon(icon, color: c, size: 20),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(
-                    color: c,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(color: c, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
               ),
-              if (color == null)
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppTheme.textSecondary,
-                  size: 20,
-                ),
+              if (showChevron)
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF555555), size: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _Banner({required this.icon, required this.text, required this.color, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(text, style: TextStyle(color: color, fontSize: 13))),
+            if (onTap != null)
+              Icon(Icons.chevron_right_rounded, color: color, size: 18),
+          ],
         ),
       ),
     );
