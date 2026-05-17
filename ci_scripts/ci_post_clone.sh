@@ -1,13 +1,16 @@
 #!/bin/sh
 set -e
 
-echo "=== ci_post_clone start (ios/ci_scripts) ==="
+echo "=== ci_post_clone start ==="
 echo "PWD: $(pwd)"
 echo "CI_WORKSPACE: $CI_WORKSPACE"
+echo "HOME: $HOME"
 
-REPO_ROOT="${CI_WORKSPACE:-$(cd "$(dirname "$0")/../.." && pwd)}"
+# Determine repo root — CI_WORKSPACE is set by Xcode Cloud
+REPO_ROOT="${CI_WORKSPACE:-$(pwd)}"
 cd "$REPO_ROOT"
 
+# Install Flutter via Homebrew (Homebrew is pre-installed on Xcode Cloud agents)
 echo "=== Installing Flutter via Homebrew ==="
 brew install --cask flutter
 
