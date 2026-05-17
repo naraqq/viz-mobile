@@ -64,6 +64,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app does not use your location. This permission is requested by a third-party SDK.</string>
 	<key>UIStatusBarHidden</key>
 		<false/>
 		<key>UISupportedInterfaceOrientations</key>
