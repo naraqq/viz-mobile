@@ -13,7 +13,9 @@ flutter config --no-analytics 2>/dev/null || true
 cd "$REPO_ROOT"
 flutter pub get || { echo "ERROR: pub get failed"; exit 1; }
 
+flutter precache --ios || { echo "ERROR: precache failed"; exit 1; }
+
 cd "$REPO_ROOT/ios"
-LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
+LANG=en_US.UTF-8 pod install || { echo "ERROR: pod install failed"; exit 1; }
 
 echo "=== done ==="
