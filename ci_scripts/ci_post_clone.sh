@@ -28,6 +28,7 @@ flutter precache --ios || { echo "ERROR: flutter precache failed"; exit 1; }
 
 echo "=== Step 6: pod install ==="
 cd "$REPO_ROOT/ios"
-LANG=en_US.UTF-8 pod install || { echo "ERROR: pod install failed"; exit 1; }
+pod repo remove trunk 2>/dev/null || true
+LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
 
 echo "=== ci_post_clone DONE ==="
