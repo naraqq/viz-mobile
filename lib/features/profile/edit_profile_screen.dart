@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,6 +52,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showDeleteConfirmation() {
+    final user = ref.read(authProvider).user;
+    final requiresPassword = user?.hasPassword ?? true;
+    showDialog(
+      context: context,
+      builder: (ctx) => _DeleteAccountDialog(requiresPassword: requiresPassword),
+    );
   }
 
   @override
@@ -146,8 +156,162 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   )
                 : const Text('Хадгалах', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           ),
+
+          // Danger zone
+          const SizedBox(height: 48),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.red.shade900.withValues(alpha: 0.5)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Бүртгэл устгах',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Устгасны дараа бүх мэдээлэл, түрээс болон үзэх түүх бүрмөсөн устгагдана.',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _showDeleteConfirmation,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: Colors.red.shade800),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Бүртгэл устгах', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+class _DeleteAccountDialog extends ConsumerStatefulWidget {
+  final bool requiresPassword;
+  const _DeleteAccountDialog({required this.requiresPassword});
+
+  @override
+  ConsumerState<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
+  final _passwordCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _confirm() async {
+    if (widget.requiresPassword && _passwordCtrl.text.isEmpty) {
+      setState(() => _error = 'Нууц үгээ оруулна уу');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.delete<dynamic>(
+        '/profile',
+        data: widget.requiresPassword ? {'password': _passwordCtrl.text} : null,
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        await ref.read(authProvider.notifier).logout();
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data?['errors']?['password']?.first
+          ?? e.response?.data?['message']
+          ?? 'Алдаа гарлаа';
+      if (mounted) setState(() { _loading = false; _error = msg as String?; });
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Алдаа гарлаа'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text(
+        'Бүртгэл устгах',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Бүртгэлийг устгасны дараа буцааж сэргээх боломжгүй.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
+          if (widget.requiresPassword) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: _obscure,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF2A2A2A),
+                hintText: 'Нууц үгээ оруулна уу',
+                hintStyle: const TextStyle(color: AppTheme.textSecondary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                errorText: _error,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: AppTheme.textSecondary,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+          ] else if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Болих', style: TextStyle(color: AppTheme.textSecondary)),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _confirm,
+          child: _loading
+              ? const SizedBox(
+                  height: 16, width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                )
+              : const Text('Устгах', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 }

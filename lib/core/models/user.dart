@@ -5,6 +5,7 @@ class User {
   final String name;
   final String email;
   final String role;
+  final bool hasPassword;
   final DateTime? subscriptionEndsAt;
   final bool hasActiveSubscription;
 
@@ -13,6 +14,7 @@ class User {
     required this.name,
     required this.email,
     required this.role,
+    this.hasPassword = true,
     this.subscriptionEndsAt,
     this.hasActiveSubscription = false,
   });
@@ -24,6 +26,7 @@ class User {
         name: json['name'] as String,
         email: json['email'] as String,
         role: json['role'] as String? ?? 'user',
+        hasPassword: readBool(json['has_password'], fallback: true),
         subscriptionEndsAt: json['subscription_ends_at'] != null
             ? DateTime.tryParse(json['subscription_ends_at'] as String)
             : null,

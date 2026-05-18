@@ -11,17 +11,37 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _rememberMe = true;
   bool _googleLoading = false;
   bool _appleLoading = false;
 
+  late AnimationController _anim;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+    _slide = Tween(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
+    _anim.forward();
+  }
+
   @override
   void dispose() {
+    _anim.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -35,20 +55,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _googleLoading = false);
     if (ok) {
-      final needsPassword = ref.read(authProvider).needsPassword;
-      if (needsPassword) {
+      if (ref.read(authProvider).needsPassword) {
         await _showSetPasswordDialog();
       } else {
         context.go('/');
       }
     } else {
-      final error = ref.read(authProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Google нэвтрэлт амжилтгүй боллоо'),
-          backgroundColor: AppTheme.primary,
-        ),
-      );
+      _showError(ref.read(authProvider).error ?? 'Google нэвтрэлт амжилтгүй боллоо');
     }
   }
 
@@ -58,20 +71,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _appleLoading = false);
     if (ok) {
-      final needsPassword = ref.read(authProvider).needsPassword;
-      if (needsPassword) {
+      if (ref.read(authProvider).needsPassword) {
         await _showSetPasswordDialog();
       } else {
         context.go('/');
       }
     } else {
-      final error = ref.read(authProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Apple нэвтрэлт амжилтгүй боллоо'),
-          backgroundColor: AppTheme.primary,
-        ),
-      );
+      _showError(ref.read(authProvider).error ?? 'Apple нэвтрэлт амжилтгүй боллоо');
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF2A2A2A)),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    final ok = await ref
+        .read(authProvider.notifier)
+        .login(_emailCtrl.text.trim(), _passCtrl.text);
+    if (!mounted) return;
+    if (ok) {
+      context.go('/');
+    } else {
+      _showError(ref.read(authProvider).error ?? 'Нэвтрэхэд алдаа гарлаа');
     }
   }
 
@@ -86,293 +111,460 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (ctx) => PopScope(
         canPop: false,
         child: StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
-          title: const Text(
-            'Нууц үг тохируулах',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'И-мэйлээр нэвтэрч чадахын тулд нууц үг үүсгэнэ үү.',
-                  style: TextStyle(color: Colors.white60, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: passCtrl,
-                  obscureText: obscure,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Нууц үг',
-                    labelStyle: const TextStyle(color: Colors.white54),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: Colors.white38,
-                      ),
-                      onPressed: () => setS(() => obscure = !obscure),
-                    ),
+          builder: (ctx, setS) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            title: const Text(
+              'Нууц үг тохируулах',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'И-мэйлээр нэвтэрч чадахын тулд нууц үг үүсгэнэ үү.',
+                    style: TextStyle(color: Colors.white60, fontSize: 13),
                   ),
-                  validator: (v) => v == null || v.length < 8
-                      ? 'Хамгийн багадаа 8 тэмдэгт'
-                      : null,
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: passCtrl,
+                    obscureText: obscure,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Нууц үг',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.white38,
+                        ),
+                        onPressed: () => setS(() => obscure = !obscure),
+                      ),
+                    ),
+                    validator: (v) =>
+                        v == null || v.length < 8 ? 'Хамгийн багадаа 8 тэмдэгт' : null,
+                  ),
+                ],
+              ),
             ),
+            actions: [
+              Consumer(
+                builder: (_, ref2, __) {
+                  final loading = ref2.watch(authProvider).isLoading;
+                  return ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+                            final ok = await ref2
+                                .read(authProvider.notifier)
+                                .setPassword(passCtrl.text);
+                            if (ok && ctx.mounted) {
+                              Navigator.of(ctx).pop();
+                              if (mounted) context.go('/');
+                            } else if (ctx.mounted && mounted) {
+                              _showError(ref2.read(authProvider).error ?? 'Алдаа гарлаа');
+                            }
+                          },
+                    child: loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Хадгалах'),
+                  );
+                },
+              ),
+            ],
           ),
-          actions: [
-            Consumer(
-              builder: (_, ref2, __) {
-                final loading = ref2.watch(authProvider).isLoading;
-                return ElevatedButton(
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          if (!formKey.currentState!.validate()) return;
-                          final ok = await ref2
-                              .read(authProvider.notifier)
-                              .setPassword(passCtrl.text);
-                          if (ok && ctx.mounted) {
-                            Navigator.of(ctx).pop();
-                            if (mounted) context.go('/');
-                          } else if (ctx.mounted && mounted) {
-                            final err = ref2.read(authProvider).error;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(err ?? 'Алдаа гарлаа'),
-                                backgroundColor: AppTheme.primary,
-                              ),
-                            );
-                          }
-                        },
-                  child: loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Хадгалах'),
-                );
-              },
-            ),
-          ],
-        ),
         ),
       ),
     );
-
     passCtrl.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final ok = await ref
-        .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passCtrl.text, remember: _rememberMe);
-    if (ok && mounted) {
-      context.go('/');
-      return;
-    }
-
-    if (!ok && mounted) {
-      final error = ref.read(authProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Нэвтрэхэд алдаа гарлаа'),
-          backgroundColor: AppTheme.primary,
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider).isLoading;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: Image.asset(
-                      'assets/images/app_icon_black.png',
-                      height: 80,
-                      width: 80,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Үргэлжлүүлэхийн тулд нэвтэрнэ үү',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  TextFormField(
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'И-мэйл',
-                      prefixIcon: Icon(
-                        Icons.email_outlined,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    validator: (v) => v == null || !v.contains('@')
-                        ? 'Зөв и-мэйл оруулна уу'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passCtrl,
-                    obscureText: _obscure,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Нууц үг',
-                      prefixIcon: const Icon(
-                        Icons.lock_outline,
-                        color: AppTheme.textSecondary,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppTheme.textSecondary,
+      body: Stack(
+        children: [
+          // Subtle top radial glow
+          Positioned(
+            top: -size.height * 0.15,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: size.height * 0.6,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    AppTheme.primary.withValues(alpha: 0.18),
+                    Colors.transparent,
+                  ],
+                  radius: 0.75,
+                ),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _slide,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: size.height * 0.08),
+
+                        // ── Brand ───────────────────────────────────────────
+                        Center(
+                          child: Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Image.asset(
+                                  'assets/images/app_icon_black.png',
+                                  height: 88,
+                                  width: 88,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 88,
+                                    height: 88,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary,
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 48,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              const Text(
+                                'monfilm',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Кино, цуврал нэг дороо',
+                                style: TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 14,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                      ),
-                    ),
-                    validator: (v) => v == null || v.length < 8
-                        ? 'Нууц үг хэт богино байна'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-                  CheckboxListTile(
-                    value: _rememberMe,
-                    onChanged: (value) =>
-                        setState(() => _rememberMe = value ?? true),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    activeColor: AppTheme.primary,
-                    checkColor: Colors.white,
-                    title: const Text(
-                      'Намайг сана',
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  ElevatedButton(
-                    onPressed: (isLoading || _anyLoading) ? null : _submit,
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Нэвтрэх'),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: Colors.white12)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'эсвэл',
-                          style: TextStyle(
-                              color: Colors.white38, fontSize: 13),
-                        ),
-                      ),
-                      const Expanded(child: Divider(color: Colors.white12)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Google button
-                  OutlinedButton(
-                    onPressed: (isLoading || _anyLoading) ? null : _googleSignIn,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: _googleLoading
-                        ? const SizedBox(
-                            height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
-                          )
-                        : Row(
+
+                        SizedBox(height: size.height * 0.06),
+
+                        // ── Social sign-in ──────────────────────────────────
+                        _SocialButton(
+                          onTap: (isLoading || _anyLoading) ? null : _googleSignIn,
+                          loading: _googleLoading,
+                          backgroundColor: Colors.white,
+                          loadingColor: const Color(0xFF3C4043),
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
                                 'assets/images/google_logo.webp',
-                                height: 20, width: 20,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.g_mobiledata_rounded, color: Colors.white70, size: 22),
+                                height: 20,
+                                width: 20,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.g_mobiledata_rounded,
+                                  color: Color(0xFF4285F4),
+                                  size: 24,
+                                ),
                               ),
                               const SizedBox(width: 10),
-                              const Text('Google-ээр нэвтрэх',
-                                  style: TextStyle(color: Colors.white70, fontSize: 15)),
+                              const Text(
+                                'Google-ээр нэвтрэх',
+                                style: TextStyle(
+                                  color: Color(0xFF3C4043),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Apple button
-                  OutlinedButton(
-                    onPressed: (isLoading || _anyLoading) ? null : _appleSignIn,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: _appleLoading
-                        ? const SizedBox(
-                            height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
-                          )
-                        : const Row(
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _SocialButton(
+                          onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
+                          loading: _appleLoading,
+                          backgroundColor: const Color(0xFF1C1C1E),
+                          border: Border.all(color: const Color(0xFF3A3A3A)),
+                          loadingColor: Colors.white,
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.apple, color: Colors.white70, size: 22),
+                              Icon(Icons.apple, color: Colors.white, size: 22),
                               SizedBox(width: 10),
-                              Text('Apple-ээр нэвтрэх',
-                                  style: TextStyle(color: Colors.white70, fontSize: 15)),
+                              Text(
+                                'Apple-ээр нэвтрэх',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
+                        ),
+
+                        // ── Divider ─────────────────────────────────────────
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 28),
+                          child: Row(
+                            children: [
+                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14),
+                                child: Text(
+                                  'И-мэйлээр нэвтрэх',
+                                  style: TextStyle(
+                                    color: Color(0xFF555555),
+                                    fontSize: 12,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
+                            ],
+                          ),
+                        ),
+
+                        // ── Email field ─────────────────────────────────────
+                        _Field(
+                          controller: _emailCtrl,
+                          hint: 'И-мэйл хаяг',
+                          icon: Icons.mail_outline_rounded,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) => v == null || !v.contains('@')
+                              ? 'Зөв и-мэйл оруулна уу'
+                              : null,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ── Password field ──────────────────────────────────
+                        _Field(
+                          controller: _passCtrl,
+                          hint: 'Нууц үг',
+                          icon: Icons.lock_outline_rounded,
+                          obscure: _obscure,
+                          onToggleObscure: () =>
+                              setState(() => _obscure = !_obscure),
+                          validator: (v) => v == null || v.length < 8
+                              ? 'Нууц үг хэт богино байна'
+                              : null,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── Login button ────────────────────────────────────
+                        SizedBox(
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: (isLoading || _anyLoading) ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  AppTheme.primary.withValues(alpha: 0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Нэвтрэх',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        SizedBox(height: size.height * 0.06),
+
+                        const Text(
+                          'Бүртгэл үүсгэхийн тулд нийгмийн сүлжээгээр\nнэвтэрнэ үү, эсвэл админтай холбогдоно уу.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF444444),
+                            fontSize: 12,
+                            height: 1.6,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Бүртгэл үүсгэхийн тулд нийгмийн сүлжээгээр нэвтэрнэ үү,\nэсвэл админтай холбогдоно уу.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Social button ─────────────────────────────────────────────────────────────
+
+class _SocialButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool loading;
+  final Color backgroundColor;
+  final BoxBorder? border;
+  final Widget child;
+  final Color loadingColor;
+
+  const _SocialButton({
+    required this.onTap,
+    required this.loading,
+    required this.backgroundColor,
+    required this.child,
+    required this.loadingColor,
+    this.border,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        opacity: onTap == null ? 0.45 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(12),
+            border: border,
+          ),
+          child: Center(
+            child: loading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: loadingColor,
+                    ),
+                  )
+                : child,
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Text field ────────────────────────────────────────────────────────────────
+
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final bool obscure;
+  final VoidCallback? onToggleObscure;
+  final String? Function(String?)? validator;
+
+  const _Field({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType,
+    this.obscure = false,
+    this.onToggleObscure,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
+      validator: validator,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 15),
+        filled: true,
+        fillColor: const Color(0xFF151515),
+        prefixIcon: Icon(icon, color: const Color(0xFF555555), size: 20),
+        suffixIcon: onToggleObscure != null
+            ? IconButton(
+                icon: Icon(
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: const Color(0xFF555555),
+                  size: 20,
+                ),
+                onPressed: onToggleObscure,
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF555555)),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.primary.withValues(alpha: 0.7)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

@@ -19,7 +19,7 @@ enum _SeekSide { left, right }
 
 enum _GestureType { seek, volume, brightness }
 
-const _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+const _speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0];
 
 String _seriesTitleFromTitle(String title) {
   final parts = title.split(' · ');
@@ -733,15 +733,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                 ),
               ),
 
-            // ── Buffering spinner ──────────────────────────────────────────
-            if (_isBuffering && _isInitialized && !_isScrubbing)
+            // ── Buffering spinner — only when controls are hidden ──────────
+            if (_isBuffering && _isInitialized && !_isScrubbing && !_showControls)
               const Center(
                 child: SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
+                    color: Colors.white54,
+                    strokeWidth: 2,
                   ),
                 ),
               ),
@@ -760,6 +760,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                         controller: _controller,
                         title: _title,
                         isInitialized: _isInitialized,
+                        isBuffering: _isBuffering,
                         hasTracks: _tracks.isNotEmpty,
                         hasEpisodes: _seasons.isNotEmpty,
                         loadingSubtitles: _loadingSubtitles,
@@ -933,6 +934,7 @@ class _ControlsOverlay extends StatelessWidget {
   final VideoPlayerController controller;
   final String title;
   final bool isInitialized;
+  final bool isBuffering;
   final bool hasTracks;
   final bool hasEpisodes;
   final bool loadingSubtitles;
@@ -953,6 +955,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.controller,
     required this.title,
     required this.isInitialized,
+    required this.isBuffering,
     required this.hasTracks,
     required this.hasEpisodes,
     required this.loadingSubtitles,
@@ -1084,7 +1087,23 @@ class _ControlsOverlay extends StatelessWidget {
               children: [
                 _SeekButton(icon: Icons.replay_10_rounded, onTap: onSeekBack),
                 const SizedBox(width: 36),
-                _PlayPauseButton(isPlaying: isPlaying, onTap: onPlayPause),
+                if (isBuffering)
+                  const SizedBox(
+                    width: 68,
+                    height: 68,
+                    child: Center(
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _PlayPauseButton(isPlaying: isPlaying, onTap: onPlayPause),
                 const SizedBox(width: 36),
                 _SeekButton(
                   icon: Icons.forward_10_rounded,
@@ -1644,7 +1663,7 @@ class _SpeedSheet extends StatelessWidget {
         children: [
           _SheetHandle(),
           const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 16),
             child: Text(
               'Тоглуулах хурд',
               style: TextStyle(
@@ -1654,25 +1673,51 @@ class _SpeedSheet extends StatelessWidget {
               ),
             ),
           ),
-          ..._speedOptions.map((s) {
-            final selected = s == current;
-            final label = s == s.truncateToDouble() ? '${s.toInt()}x' : '${s}x';
-            return ListTile(
-              leading: Icon(
-                selected ? Icons.check_rounded : null,
-                color: AppTheme.primary,
-              ),
-              title: Text(
-                label,
-                style: TextStyle(
-                  color: selected ? AppTheme.primary : Colors.white,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              onTap: () => onSelect(s),
-            );
-          }),
-          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: _speedOptions.map((s) {
+                final selected = s == current;
+                final label = s == s.truncateToDouble()
+                    ? '${s.toInt()}x'
+                    : '${s}x';
+                return GestureDetector(
+                  onTap: () => onSelect(s),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppTheme.primary
+                          : Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: selected
+                            ? AppTheme.primary
+                            : Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: selected ? Colors.white : Colors.white70,
+                        fontWeight: selected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );
