@@ -1,33 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/providers/notifications_provider.dart';
 import '../../core/theme/app_theme.dart';
 
-class VizBottomNav extends ConsumerWidget {
+class VizBottomNav extends StatelessWidget {
   final Widget child;
 
   const VizBottomNav({super.key, required this.child});
 
   static const _tabs = [
     (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Нүүр', path: '/'),
-    (icon: Icons.search_outlined, activeIcon: Icons.search_rounded, label: 'Хайх', path: '/browse'),
-    (icon: Icons.notifications_none_outlined, activeIcon: Icons.notifications_rounded, label: 'Мэдэгдэл', path: '/notifications'),
     (icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Профайл', path: '/profile'),
   ];
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith('/browse')) return 1;
-    if (location.startsWith('/notifications')) return 2;
-    if (location.startsWith('/profile')) return 3;
+    if (location.startsWith('/profile')) return 1;
     return 0;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final index = _currentIndex(context);
-    final unreadCount = ref.watch(notificationsProvider).unreadCount;
     final bottom = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
@@ -52,7 +45,7 @@ class VizBottomNav extends ConsumerWidget {
                 activeIcon: tab.activeIcon,
                 label: tab.label,
                 isSelected: i == index,
-                badge: tab.path == '/notifications' ? unreadCount : 0,
+                badge: 0,
                 onTap: () => context.go(tab.path),
               );
             }),

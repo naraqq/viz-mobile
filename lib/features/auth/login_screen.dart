@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -231,132 +233,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                         // ── Brand ───────────────────────────────────────────
                         Center(
-                          child: Column(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(22),
-                                child: Image.asset(
-                                  'assets/images/app_icon_black.png',
-                                  height: 88,
-                                  width: 88,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 88,
-                                    height: 88,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primary,
-                                      borderRadius: BorderRadius.circular(22),
-                                    ),
-                                    child: const Icon(
-                                      Icons.play_arrow_rounded,
-                                      color: Colors.white,
-                                      size: 48,
-                                    ),
-                                  ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: Image.asset(
+                              'assets/images/app_icon_black.png',
+                              height: 120,
+                              width: 120,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary,
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
-                              ),
-                              const SizedBox(height: 18),
-                              const Text(
-                                'monfilm',
-                                style: TextStyle(
+                                child: const Icon(
+                                  Icons.play_arrow_rounded,
                                   color: Colors.white,
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
+                                  size: 64,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Кино, цуврал нэг дороо',
-                                style: TextStyle(
-                                  color: Color(0xFF6B6B6B),
-                                  fontSize: 14,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
 
                         SizedBox(height: size.height * 0.06),
-
-                        // ── Social sign-in ──────────────────────────────────
-                        _SocialButton(
-                          onTap: (isLoading || _anyLoading) ? null : _googleSignIn,
-                          loading: _googleLoading,
-                          backgroundColor: Colors.white,
-                          loadingColor: const Color(0xFF3C4043),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/google_logo.webp',
-                                height: 20,
-                                width: 20,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.g_mobiledata_rounded,
-                                  color: Color(0xFF4285F4),
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Google-ээр нэвтрэх',
-                                style: TextStyle(
-                                  color: Color(0xFF3C4043),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        _SocialButton(
-                          onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
-                          loading: _appleLoading,
-                          backgroundColor: const Color(0xFF1C1C1E),
-                          border: Border.all(color: const Color(0xFF3A3A3A)),
-                          loadingColor: Colors.white,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.apple, color: Colors.white, size: 22),
-                              SizedBox(width: 10),
-                              Text(
-                                'Apple-ээр нэвтрэх',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // ── Divider ─────────────────────────────────────────
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 28),
-                          child: Row(
-                            children: [
-                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 14),
-                                child: Text(
-                                  'И-мэйлээр нэвтрэх',
-                                  style: TextStyle(
-                                    color: Color(0xFF555555),
-                                    fontSize: 12,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
-                            ],
-                          ),
-                        ),
 
                         // ── Email field ─────────────────────────────────────
                         _Field(
@@ -420,12 +320,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
 
-                        SizedBox(height: size.height * 0.06),
+                        // ── Divider ─────────────────────────────────────────
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 28),
+                          child: Row(
+                            children: [
+                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14),
+                                child: Text(
+                                  'Эсвэл',
+                                  style: TextStyle(
+                                    color: Color(0xFF555555),
+                                    fontSize: 12,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
+                            ],
+                          ),
+                        ),
 
-                        const Text(
-                          'Бүртгэл үүсгэхийн тулд нийгмийн сүлжээгээр\nнэвтэрнэ үү, эсвэл админтай холбогдоно уу.',
+                        // ── Social sign-in ──────────────────────────────────
+                        _SocialButton(
+                          onTap: (isLoading || _anyLoading) ? null : _googleSignIn,
+                          loading: _googleLoading,
+                          backgroundColor: Colors.white,
+                          loadingColor: const Color(0xFF3C4043),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/google_logo.webp',
+                                height: 20,
+                                width: 20,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.g_mobiledata_rounded,
+                                  color: Color(0xFF4285F4),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Google-ээр нэвтрэх',
+                                style: TextStyle(
+                                  color: Color(0xFF3C4043),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _SocialButton(
+                          onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
+                          loading: _appleLoading,
+                          backgroundColor: const Color(0xFF1C1C1E),
+                          border: Border.all(color: const Color(0xFF3A3A3A)),
+                          loadingColor: Colors.white,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.apple, color: Colors.white, size: 22),
+                              SizedBox(width: 10),
+                              Text(
+                                'Apple-ээр нэвтрэх',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: size.height * 0.04),
+
+                        Text(
+                          Platform.isIOS
+                              ? 'Хэрэв бүртгэл байхгүй бол Google эсвэл Apple-аар нэвтэрч орно уу.'
+                              : 'Хэрэв бүртгэл байхгүй бол Google-ээр нэвтэрч орно уу.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Color(0xFF444444),
                             fontSize: 12,
                             height: 1.6,
