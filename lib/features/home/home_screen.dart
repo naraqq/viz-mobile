@@ -62,79 +62,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   continueWatching.isNotEmpty ||
                   rows.isNotEmpty;
 
-              return CustomScrollView(
-                slivers: [
-                  // ── Hero banner ────────────────────────────────────────────
-                  if (featuredItems.isNotEmpty)
-                    SliverToBoxAdapter(child: HeroBanner(items: featuredItems))
-                  else
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: MediaQuery.paddingOf(context).top + 120,
-                      ),
-                    ),
-
-                  // ── Continue watching ──────────────────────────────────────
-                  if (continueWatching.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _SectionLabel(label: 'Үргэлжлүүлэн үзэх'),
-                    ),
-                  if (continueWatching.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 120,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: continueWatching.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 10),
-                          itemBuilder: (context, i) {
-                            final item = continueWatching[i];
-                            final user = ref.read(authProvider).user;
-                            final hasAccess = item.isFree ||
-                                (item.requiresSub &&
-                                    (user?.hasActiveSubscription == true)) ||
-                                (item.isRental && item.rentalActive);
-                            return WideContentCard(
-                              imageUrl: item.thumbnailUrl,
-                              title: item.isEpisode
-                                  ? '${item.showTitle ?? item.title} · S${item.seasonNumber}E${item.episodeNumber}'
-                                  : item.title,
-                              progress: item.progress,
-                              onTap: () {
-                                if (!hasAccess && item.requiresSub) {
-                                  context.push('/plans');
-                                  return;
-                                }
-                                item.isMovie
-                                    ? context.push('/movies/${item.slug}')
-                                    : context.push('/shows/${item.slug}');
-                              },
-                            );
-                          },
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.04),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: CustomScrollView(
+                  key: ValueKey(_mode),
+                  slivers: [
+                    // ── Hero banner ──────────────────────────────────────────
+                    if (featuredItems.isNotEmpty)
+                      SliverToBoxAdapter(child: HeroBanner(items: featuredItems))
+                    else
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: MediaQuery.paddingOf(context).top + 120,
                         ),
                       ),
-                    ),
 
-                  // ── Content rows ───────────────────────────────────────────
-                  SliverList.builder(
-                    itemCount: rows.length,
-                    itemBuilder: (_, i) => ContentRowWidget(row: rows[i]),
-                  ),
-
-                  if (!hasContent)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _EmptyModeState(
-                        label: _mode.emptyLabel,
-                        onBrowse: () =>
-                            context.go(_browseLocation(mode: _mode)),
+                    // ── Continue watching ────────────────────────────────────
+                    if (continueWatching.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: _SectionLabel(label: 'Үргэлжлүүлэн үзэх'),
                       ),
+                    if (continueWatching.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 120,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: continueWatching.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, i) {
+                              final item = continueWatching[i];
+                              final user = ref.read(authProvider).user;
+                              final hasAccess = item.isFree ||
+                                  (item.requiresSub &&
+                                      (user?.hasActiveSubscription == true)) ||
+                                  (item.isRental && item.rentalActive);
+                              return WideContentCard(
+                                imageUrl: item.thumbnailUrl,
+                                title: item.isEpisode
+                                    ? '${item.showTitle ?? item.title} · S${item.seasonNumber}E${item.episodeNumber}'
+                                    : item.title,
+                                progress: item.progress,
+                                onTap: () {
+                                  if (!hasAccess && item.requiresSub) {
+                                    context.push('/plans');
+                                    return;
+                                  }
+                                  item.isMovie
+                                      ? context.push('/movies/${item.slug}')
+                                      : context.push('/shows/${item.slug}');
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                    // ── Content rows ─────────────────────────────────────────
+                    SliverList.builder(
+                      itemCount: rows.length,
+                      itemBuilder: (_, i) => ContentRowWidget(row: rows[i]),
                     ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 90)),
-                ],
+                    if (!hasContent)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyModeState(
+                          label: _mode.emptyLabel,
+                          onBrowse: () =>
+                              context.go(_browseLocation(mode: _mode)),
+                        ),
+                      ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 90)),
+                  ],
+                ),
               );
             },
           ),
@@ -192,6 +208,44 @@ class _HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget 
 }
 
 class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
+  void _showFilterDropdown(BuildContext context, RenderBox chipBox) {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final router = GoRouter.of(context);
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        chipBox.localToGlobal(Offset.zero, ancestor: overlay),
+        chipBox.localToGlobal(
+            chipBox.size.bottomRight(Offset.zero),
+            ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 240, maxHeight: 280),
+      items: widget.genres
+          .map((g) => PopupMenuItem<String>(
+                value: g.slug,
+                height: 40,
+                child: Text(
+                  g.name,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ))
+          .toList(),
+    ).then((slug) {
+      if (slug == null || !mounted) return;
+      final genre = widget.genres.firstWhere((g) => g.slug == slug);
+      router.push(
+        '/genres/${genre.slug}?label=${Uri.encodeComponent(genre.name)}',
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -211,42 +265,12 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Row 1: Logo + bell ─────────────────────────────────────
+              // ── Row 1: Bell + search ───────────────────────────────────
               SizedBox(
                 height: 40,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo mark
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'M',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'MONFILM',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
                     const Spacer(),
                     // Search
                     GestureDetector(
@@ -338,32 +362,17 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
                       selected: widget.mode == _HomeMode.shows,
                       onTap: () => widget.onModeChanged(_HomeMode.shows),
                     ),
-                    // Genre chips
-                    if (widget.genres.isNotEmpty) ...[
-                      const SizedBox(width: 7),
-                      Container(
-                        width: 1,
-                        height: 20,
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        color: Colors.white24,
-                      ),
-                      ...widget.genres.map((g) => Padding(
-                            padding: const EdgeInsets.only(left: 7),
-                            child: _Chip(
-                              label: g.name,
-                              selected: false,
-                              onTap: () => context.push(
-                                '/genres/${g.slug}?label=${Uri.encodeComponent(g.name)}',
-                              ),
-                            ),
-                          )),
-                    ],
                     const SizedBox(width: 7),
-                    _Chip(
-                      label: 'Ангилал',
-                      icon: Icons.keyboard_arrow_down_rounded,
-                      selected: false,
-                      onTap: widget.onCategoryTap,
+                    Builder(
+                      builder: (ctx) => _Chip(
+                        label: 'Ангилал',
+                        icon: Icons.keyboard_arrow_down_rounded,
+                        selected: false,
+                        onTap: () => _showFilterDropdown(
+                          context,
+                          ctx.findRenderObject() as RenderBox,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -395,8 +404,13 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+      child: AnimatedScale(
+        scale: selected ? 1.07 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
         height: 32,
         padding: EdgeInsets.symmetric(
           horizontal: icon != null ? 10 : 13,
@@ -424,14 +438,11 @@ class _Chip extends StatelessWidget {
             ),
             if (icon != null) ...[
               const SizedBox(width: 2),
-              Icon(
-                icon,
-                size: 16,
-                color: selected ? Colors.black : Colors.white,
-              ),
+              Icon(icon, size: 16, color: selected ? Colors.black : Colors.white),
             ],
           ],
         ),
+      ),
       ),
     );
   }
