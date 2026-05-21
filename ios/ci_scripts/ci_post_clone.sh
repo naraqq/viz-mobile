@@ -9,6 +9,7 @@ git clone https://github.com/flutter/flutter.git \
 
 export PATH="$PATH:$FLUTTER_SDK/bin"
 flutter config --no-analytics 2>/dev/null || true
+flutter config --no-enable-swift-package-manager 2>/dev/null || true
 
 cd "$REPO_ROOT"
 flutter pub get || { echo "ERROR: pub get failed"; exit 1; }
