@@ -13,6 +13,11 @@ flutter config --no-analytics 2>/dev/null || true
 cd "$REPO_ROOT"
 flutter pub get || { echo "ERROR: pub get failed"; exit 1; }
 
+# Restore the committed plugin registrant — CI's Flutter version may regenerate
+# it without the #if __has_include guard, causing @import failures at build time.
+git checkout -- ios/Runner/GeneratedPluginRegistrant.m \
+                ios/Runner/GeneratedPluginRegistrant.h 2>/dev/null || true
+
 flutter precache --ios || { echo "ERROR: precache failed"; exit 1; }
 
 cd "$REPO_ROOT/ios"
