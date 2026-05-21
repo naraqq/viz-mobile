@@ -16,9 +16,7 @@ flutter pub get || { echo "ERROR: pub get failed"; exit 1; }
 flutter precache --ios || { echo "ERROR: precache failed"; exit 1; }
 
 cd "$REPO_ROOT/ios"
-gem install bundler --no-document 2>/dev/null || true
-bundle install || { echo "ERROR: bundle install failed"; exit 1; }
 pod repo remove trunk 2>/dev/null || true
-LANG=en_US.UTF-8 bundle exec pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
+LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
 
 echo "=== done ==="
