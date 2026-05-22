@@ -31,6 +31,17 @@ cd "$REPO_ROOT/ios"
 pod repo remove trunk 2>/dev/null || true
 LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
 
+# Remove the explicit PBXTargetDependency from Runner AFTER pod install.
+# CocoaPods needs it during 'pod install' to identify Runner as the NSE host target.
+# Xcode 26's build system, combined with buildImplicitDependencies=YES, also finds the
+# NSE as an implicit dependency via the Embed App Extensions phase — keeping the explicit
+# dependency too causes it to be scheduled twice, producing "Multiple commands produce .appex".
+PBXPROJ="$REPO_ROOT/ios/Runner.xcodeproj/project.pbxproj"
+grep -v "8D771ACF4E84AC81A24AC200 /\* PBXTargetDependency \*/," "$PBXPROJ" > /tmp/project_patched.pbxproj \
+  && mv /tmp/project_patched.pbxproj "$PBXPROJ" \
+  || { echo "ERROR: failed to patch project.pbxproj"; exit 1; }
+echo "=== Patched project: removed NSE explicit dependency from Runner ==="
+
 echo "=== firebase_auth headers after pod install ==="
 find "$REPO_ROOT/ios/Pods" -name "FLTFirebaseAuthPlugin.h" 2>/dev/null || echo "HEADER NOT FOUND"
 echo "=== public headers root ==="
