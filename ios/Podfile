@@ -37,7 +37,6 @@ target 'Runner' do
 end
 
 target 'OneSignalNotificationServiceExtension' do
-  use_modular_headers!
   pod 'OneSignalXCFramework/OneSignalExtension'
 end
 
