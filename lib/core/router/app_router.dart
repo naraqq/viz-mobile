@@ -69,27 +69,27 @@ final routerProvider = Provider<GoRouter>((ref) {
                 NoTransitionPage(key: state.pageKey, child: const HomeScreen()),
           ),
           GoRoute(
-            path: '/browse',
-            pageBuilder: (context, state) => NoTransitionPage(
-              key: state.pageKey,
-              child: const BrowseScreen(),
-            ),
-          ),
-          GoRoute(
             path: '/profile',
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: const ProfileScreen(),
             ),
           ),
-          GoRoute(
-            path: '/notifications',
-            pageBuilder: (context, state) => NoTransitionPage(
-              key: state.pageKey,
-              child: const NotificationsScreen(),
-            ),
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/browse',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const BrowseScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/notifications',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const NotificationsScreen(),
+        ),
       ),
       GoRoute(
         path: '/plans',

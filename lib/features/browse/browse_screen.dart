@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/providers/browse_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/content_card.dart';
@@ -55,54 +56,56 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              child: TextField(
-                controller: _searchCtrl,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: 'Кино, цуврал хайх...',
-                  hintStyle: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 15,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.textSecondary,
-                    size: 20,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E1E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  suffixIcon: _hasSearch
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: AppTheme.textSecondary,
-                            size: 18,
-                          ),
-                          onPressed: _clearSearch,
-                        )
-                      : null,
-                ),
-                onChanged: _onSearchChanged,
+      appBar: AppBar(
+        backgroundColor: AppTheme.background,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 20),
+          onPressed: () => context.pop(),
+        ),
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: TextField(
+            controller: _searchCtrl,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            decoration: InputDecoration(
+              hintText: 'Кино, цуврал хайх...',
+              hintStyle: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 15,
               ),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: AppTheme.textSecondary,
+                size: 20,
+              ),
+              filled: true,
+              fillColor: const Color(0xFF1E1E1E),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              suffixIcon: _hasSearch
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.textSecondary,
+                        size: 18,
+                      ),
+                      onPressed: _clearSearch,
+                    )
+                  : null,
             ),
-            Expanded(
-              child: _hasSearch
-                  ? _ResultsView(scrollCtrl: _scrollCtrl)
-                  : const _EmptyState(),
-            ),
-          ],
+            onChanged: _onSearchChanged,
+          ),
         ),
       ),
+      body: _hasSearch
+          ? _ResultsView(scrollCtrl: _scrollCtrl)
+          : const _EmptyState(),
     );
   }
 }

@@ -274,7 +274,7 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
                     const Spacer(),
                     // Search
                     GestureDetector(
-                      onTap: () => context.go('/browse'),
+                      onTap: () => context.push('/browse'),
                       behavior: HitTestBehavior.opaque,
                       child: const SizedBox(
                         width: 40,
@@ -288,7 +288,7 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
                     ),
                     // Notification bell
                     GestureDetector(
-                      onTap: () => context.go('/notifications'),
+                      onTap: () => context.push('/notifications'),
                       behavior: HitTestBehavior.opaque,
                       child: SizedBox(
                         width: 40,
