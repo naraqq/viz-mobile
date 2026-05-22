@@ -25,15 +25,10 @@ project.gsub!(
   ""
 )
 
-project.gsub!(
-  /(CODE_SIGN_ENTITLEMENTS = [^;]+;\n)(?!\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n)/,
-  "\\1\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n"
-)
-
 File.write(path, project)
 RUBY
 
-echo "=== Patched project for Xcode Cloud archive signing ==="
+echo "=== Patched project for Xcode Cloud archive ==="
 
 PODS_DIR="$REPO_ROOT/ios/Pods"
 ruby - "$PODS_DIR" <<'RUBY'
