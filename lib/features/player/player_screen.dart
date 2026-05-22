@@ -134,6 +134,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   bool _showVolumeOverlay = false;
   bool _showBrightnessOverlay = false;
   bool _autoAdvancePending = false;
+  bool _upNextVisible = false;
+  bool _upNextDismissed = false;
 
   @override
   void initState() {
@@ -539,6 +541,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       _cues = [];
       _currentCue = null;
       _showControls = true;
+      _upNextVisible = false;
+      _upNextDismissed = false;
     });
 
     await oldController.pause().catchError((_) {});
@@ -570,20 +574,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   }
 
   void _maybeAutoAdvanceEpisode() {
-    if (_watchableType != 'episode' ||
-        _autoAdvancePending ||
-        _seasons.isEmpty ||
-        !_isInitialized) {
+    if (_watchableType != 'episode' || _seasons.isEmpty || !_isInitialized) {
       return;
     }
     final duration = _controller.value.duration;
     final position = _controller.value.position;
     if (duration.inSeconds < 20) return;
     final remaining = duration - position;
-    if (remaining.inSeconds > 1) return;
 
     final next = _nextEpisode();
     if (next == null) return;
+
+    if (!_upNextDismissed && !_upNextVisible && remaining.inSeconds <= 30) {
+      setState(() => _upNextVisible = true);
+    }
+
+    if (_autoAdvancePending) return;
+    if (remaining.inSeconds > 1) return;
     _autoAdvancePending = true;
     Future.microtask(() => _switchToEpisode(next.$1, next.$2));
   }
@@ -746,6 +753,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                 ),
               ),
 
+            // ── Up Next card ───────────────────────────────────────────────
+            if (_upNextVisible && !_isScrubbing && _isInitialized)
+              Builder(builder: (context) {
+                final next = _nextEpisode();
+                if (next == null) return const SizedBox.shrink();
+                return Positioned(
+                  right: 20,
+                  bottom: _showControls ? 90 : 20,
+                  child: _UpNextCard(
+                    season: next.$1,
+                    episode: next.$2,
+                    remaining: _controller.value.duration -
+                        _controller.value.position,
+                    onPlay: () => _switchToEpisode(next.$1, next.$2),
+                    onDismiss: () => setState(() {
+                      _upNextVisible = false;
+                      _upNextDismissed = true;
+                    }),
+                  ),
+                );
+              }),
+
             // ── Controls ───────────────────────────────────────────────────
             AnimatedOpacity(
               opacity: _showControls && !_isScrubbing ? 1.0 : 0.0,
@@ -763,6 +792,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                         isBuffering: _isBuffering,
                         hasTracks: _tracks.isNotEmpty,
                         hasEpisodes: _seasons.isNotEmpty,
+                        hasNextEpisode: _nextEpisode() != null,
                         loadingSubtitles: _loadingSubtitles,
                         speed: _speed,
                         isCropped: _isCropped,
@@ -773,6 +803,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                         onPlayPause: _togglePlay,
                         onSeekBack: () => _seek(-10, _SeekSide.left),
                         onSeekForward: () => _seek(10, _SeekSide.right),
+                        onNextEpisode: () {
+                          final next = _nextEpisode();
+                          if (next != null) _switchToEpisode(next.$1, next.$2);
+                        },
                         onSubtitlesTap: _showSubtitleSheet,
                         onEpisodesTap: _showEpisodesSheet,
                         onSpeedTap: _showSpeedSheet,
@@ -937,6 +971,7 @@ class _ControlsOverlay extends StatelessWidget {
   final bool isBuffering;
   final bool hasTracks;
   final bool hasEpisodes;
+  final bool hasNextEpisode;
   final bool loadingSubtitles;
   final double speed;
   final bool isCropped;
@@ -944,6 +979,7 @@ class _ControlsOverlay extends StatelessWidget {
   final VoidCallback onPlayPause;
   final VoidCallback onSeekBack;
   final VoidCallback onSeekForward;
+  final VoidCallback onNextEpisode;
   final VoidCallback onSubtitlesTap;
   final VoidCallback onEpisodesTap;
   final VoidCallback onSpeedTap;
@@ -958,6 +994,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.isBuffering,
     required this.hasTracks,
     required this.hasEpisodes,
+    required this.hasNextEpisode,
     required this.loadingSubtitles,
     required this.speed,
     required this.isCropped,
@@ -965,6 +1002,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.onPlayPause,
     required this.onSeekBack,
     required this.onSeekForward,
+    required this.onNextEpisode,
     required this.onSubtitlesTap,
     required this.onEpisodesTap,
     required this.onSpeedTap,
@@ -1109,6 +1147,13 @@ class _ControlsOverlay extends StatelessWidget {
                   icon: Icons.forward_10_rounded,
                   onTap: onSeekForward,
                 ),
+                if (hasNextEpisode) ...[
+                  const SizedBox(width: 16),
+                  _SeekButton(
+                    icon: Icons.skip_next_rounded,
+                    onTap: onNextEpisode,
+                  ),
+                ],
               ],
             ),
 
@@ -1384,7 +1429,7 @@ class _LockedOverlay extends StatelessWidget {
 
 // ─── Episodes sheet ───────────────────────────────────────────────────────────
 
-class _EpisodesSheet extends StatelessWidget {
+class _EpisodesSheet extends StatefulWidget {
   final List<Season> seasons;
   final int? currentEpisodeId;
   final Map<int, int> progress;
@@ -1398,8 +1443,38 @@ class _EpisodesSheet extends StatelessWidget {
   });
 
   @override
+  State<_EpisodesSheet> createState() => _EpisodesSheetState();
+}
+
+class _EpisodesSheetState extends State<_EpisodesSheet> {
+  late int _selectedSeasonIndex;
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSeasonIndex = _currentSeasonIndex();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  int _currentSeasonIndex() {
+    if (widget.currentEpisodeId == null) return 0;
+    for (var i = 0; i < widget.seasons.length; i++) {
+      for (final ep in widget.seasons[i].episodes) {
+        if (ep.id == widget.currentEpisodeId) return i;
+      }
+    }
+    return 0;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final current = _findCurrentEpisode();
+    final season = widget.seasons[_selectedSeasonIndex];
 
     return SafeArea(
       child: ConstrainedBox(
@@ -1411,8 +1486,9 @@ class _EpisodesSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _SheetHandle(),
+            // ── Header ───────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
               child: Row(
                 children: [
                   const Expanded(
@@ -1425,47 +1501,89 @@ class _EpisodesSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (current != null)
-                    Text(
-                      'Одоо: S${current.$1.seasonNumber}E${current.$2.episodeNumber}',
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  if (widget.currentEpisodeId != null)
+                    Builder(builder: (context) {
+                      for (var i = 0; i < widget.seasons.length; i++) {
+                        for (final ep in widget.seasons[i].episodes) {
+                          if (ep.id == widget.currentEpisodeId) {
+                            return Text(
+                              'Одоо: S${widget.seasons[i].seasonNumber}E${ep.episodeNumber}',
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          }
+                        }
+                      }
+                      return const SizedBox.shrink();
+                    }),
                 ],
               ),
             ),
-            Flexible(
-              child: ListView.builder(
-                itemCount: seasons.length,
-                itemBuilder: (context, seasonIndex) {
-                  final season = seasons[seasonIndex];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+            // ── Season tabs (only when >1 season) ────────────────────────
+            if (widget.seasons.length > 1)
+              SizedBox(
+                height: 38,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: widget.seasons.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final selected = i == _selectedSeasonIndex;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedSeasonIndex = i);
+                        _scrollController.jumpTo(0);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppTheme.primary
+                              : Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected
+                                ? AppTheme.primary
+                                : Colors.white12,
+                          ),
+                        ),
                         child: Text(
-                          '${season.seasonNumber}-р бүлэг',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                          'Бүлэг ${widget.seasons[i].seasonNumber}',
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.white60,
+                            fontSize: 13,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
-                      ...season.episodes.map(
-                        (episode) => _EpisodeSheetRow(
-                          season: season,
-                          episode: episode,
-                          progress: progress[episode.id],
-                          isCurrent: episode.id == currentEpisodeId,
-                          onTap: () => onSelect(season, episode),
-                        ),
-                      ),
-                    ],
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            // ── Episode list for selected season ─────────────────────────
+            Flexible(
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: season.episodes.length,
+                itemBuilder: (context, i) {
+                  final episode = season.episodes[i];
+                  return _EpisodeSheetRow(
+                    season: season,
+                    episode: episode,
+                    progress: widget.progress[episode.id],
+                    isCurrent: episode.id == widget.currentEpisodeId,
+                    onTap: () => widget.onSelect(season, episode),
                   );
                 },
               ),
@@ -1474,16 +1592,6 @@ class _EpisodesSheet extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  (Season, Episode)? _findCurrentEpisode() {
-    if (currentEpisodeId == null) return null;
-    for (final season in seasons) {
-      for (final episode in season.episodes) {
-        if (episode.id == currentEpisodeId) return (season, episode);
-      }
-    }
-    return null;
   }
 }
 
@@ -1645,6 +1753,142 @@ class _EpisodeSheetRow extends StatelessWidget {
     color: Colors.white10,
     child: const Icon(Icons.movie_outlined, color: Colors.white38),
   );
+}
+
+// ─── Up Next card ─────────────────────────────────────────────────────────────
+
+class _UpNextCard extends StatelessWidget {
+  final Season season;
+  final Episode episode;
+  final Duration remaining;
+  final VoidCallback onPlay;
+  final VoidCallback onDismiss;
+
+  const _UpNextCard({
+    required this.season,
+    required this.episode,
+    required this.remaining,
+    required this.onPlay,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sec = remaining.inSeconds.clamp(0, 99);
+    final label =
+        'S${season.seasonNumber}E${episode.episodeNumber} · ${episode.name}';
+
+    return Container(
+      width: 240,
+      decoration: BoxDecoration(
+        color: const Color(0xE6141414),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 6, 6),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Дараагийн анги',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onDismiss,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.close, color: Colors.white54, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── Thumbnail ───────────────────────────────────────────────────
+          if (episode.stillUrl != null)
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.zero),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  episode.stillUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    child: const Icon(
+                      Icons.movie_outlined,
+                      color: Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // ── Title + buttons ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: onPlay,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          sec > 0 ? 'Үзэх ($sec с)' : 'Үзэх',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Speed sheet ───────────────────────────────────────────────────────────────

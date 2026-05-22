@@ -7,6 +7,7 @@ import '../../core/models/season.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/show_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/play_access.dart';
 import '../../shared/widgets/loading_shimmer.dart';
 import '../../shared/widgets/trailer_card.dart';
 
@@ -21,6 +22,7 @@ class ShowDetailScreen extends ConsumerStatefulWidget {
 
 class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
   int _selectedSeasonIndex = 0;
+  bool _checkingAccess = false;
 
   bool _hasReadyVideo(Episode episode) =>
       episode.isReleased && episode.streamVideo?.isReady == true;
@@ -44,31 +46,45 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
     return null;
   }
 
-  void _openEpisode(
-    BuildContext context,
+  Future<void> _openEpisode(
     ShowDetailData detail,
     String showTitle,
     int seasonNumber,
     Episode episode,
-  ) {
+  ) async {
     if (!_hasReadyVideo(episode)) return;
 
-    context.push(
-      '/player',
-      extra: {
-        'hlsUrl': episode.streamVideo!.hlsUrl ?? '',
-        'title': '$showTitle · S${seasonNumber}E${episode.episodeNumber}',
-        'seriesTitle': showTitle,
-        'watchableType': 'episode',
-        'watchableId': episode.id,
-        'currentEpisodeId': episode.id,
-        'currentSeasonNumber': seasonNumber,
-        'startPosition': detail.episodeProgress[episode.id] ?? 0,
-        'subtitleTracks': episode.streamVideo!.subtitleTracks,
-        'seasons': detail.show.seasons,
-        'episodeProgress': detail.episodeProgress,
-      },
-    );
+    setState(() => _checkingAccess = true);
+    try {
+      final ok = await verifyPlayAccess(
+        ref: ref,
+        slug: widget.slug,
+        isMovie: false,
+      );
+      if (!mounted) return;
+      if (ok) {
+        context.push(
+          '/player',
+          extra: {
+            'hlsUrl': episode.streamVideo!.hlsUrl ?? '',
+            'title': '$showTitle · S${seasonNumber}E${episode.episodeNumber}',
+            'seriesTitle': showTitle,
+            'watchableType': 'episode',
+            'watchableId': episode.id,
+            'currentEpisodeId': episode.id,
+            'currentSeasonNumber': seasonNumber,
+            'startPosition': detail.episodeProgress[episode.id] ?? 0,
+            'subtitleTracks': episode.streamVideo!.subtitleTracks,
+            'seasons': detail.show.seasons,
+            'episodeProgress': detail.episodeProgress,
+          },
+        );
+      } else {
+        handleAccessDenied(context);
+      }
+    } finally {
+      if (mounted) setState(() => _checkingAccess = false);
+    }
   }
 
   @override
@@ -234,6 +250,7 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                     const SizedBox(height: 16),
                     _PrimaryWatchButton(
                       canWatch: canWatch,
+                      isLoading: _checkingAccess,
                       episode: featuredEpisode,
                       progress: featuredEpisode != null
                           ? detail.episodeProgress[featuredEpisode.id]
@@ -245,7 +262,6 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                         }
                         if (featuredEpisode != null && featuredSeason != null) {
                           _openEpisode(
-                            context,
                             detail,
                             show.title,
                             featuredSeason.seasonNumber,
@@ -312,13 +328,13 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                             episode: ep,
                             progress: detail.episodeProgress[ep.id],
                             canWatch: canWatch,
+                            isLoading: _checkingAccess,
                             onTap: () {
                               if (!canWatch) {
                                 context.push('/plans');
                                 return;
                               }
                               _openEpisode(
-                                context,
                                 detail,
                                 show.title,
                                 currentSeason.seasonNumber,
@@ -424,12 +440,14 @@ class _ShowMetaLine extends StatelessWidget {
 
 class _PrimaryWatchButton extends StatelessWidget {
   final bool canWatch;
+  final bool isLoading;
   final Episode? episode;
   final int? progress;
   final VoidCallback onPressed;
 
   const _PrimaryWatchButton({
     required this.canWatch,
+    required this.isLoading,
     required this.episode,
     required this.progress,
     required this.onPressed,
@@ -449,8 +467,17 @@ class _PrimaryWatchButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: ElevatedButton.icon(
-        onPressed: canPlay || !canWatch ? onPressed : null,
-        icon: Icon(!canWatch ? Icons.lock_outline : Icons.play_arrow),
+        onPressed: isLoading ? null : (canPlay || !canWatch ? onPressed : null),
+        icon: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black54,
+                ),
+              )
+            : Icon(!canWatch ? Icons.lock_outline : Icons.play_arrow),
         label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
@@ -601,12 +628,14 @@ class _EpisodeTile extends StatelessWidget {
   final Episode episode;
   final int? progress;
   final bool canWatch;
+  final bool isLoading;
   final VoidCallback onTap;
 
   const _EpisodeTile({
     required this.episode,
     this.progress,
     required this.canWatch,
+    required this.isLoading,
     required this.onTap,
   });
 
@@ -623,7 +652,7 @@ class _EpisodeTile extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: (released && hasVideo) || !canWatch ? onTap : null,
+      onTap: isLoading ? null : ((released && hasVideo) || !canWatch ? onTap : null),
       child: Container(
         foregroundDecoration: released
             ? null

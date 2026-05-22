@@ -9,19 +9,47 @@ import '../../core/models/season.dart';
 import '../../core/providers/movie_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/play_access.dart';
 import '../payment/qpay_sheet.dart';
 import '../../shared/widgets/content_card.dart';
 import '../../shared/widgets/loading_shimmer.dart';
 import '../../shared/widgets/trailer_card.dart';
 
-class MovieDetailScreen extends ConsumerWidget {
+class MovieDetailScreen extends ConsumerStatefulWidget {
   final String slug;
 
   const MovieDetailScreen({super.key, required this.slug});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync = ref.watch(movieDetailProvider(slug));
+  ConsumerState<MovieDetailScreen> createState() => _MovieDetailScreenState();
+}
+
+class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
+  bool _checkingAccess = false;
+
+  Future<void> _launchPlayer(Map<String, dynamic> playerArgs, {bool isFree = false}) async {
+    setState(() => _checkingAccess = true);
+    try {
+      final ok = await verifyPlayAccess(
+        ref: ref,
+        slug: widget.slug,
+        isMovie: true,
+        isFree: isFree,
+      );
+      if (!mounted) return;
+      if (ok) {
+        context.push('/player', extra: playerArgs);
+      } else {
+        handleAccessDenied(context);
+      }
+    } finally {
+      if (mounted) setState(() => _checkingAccess = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(movieDetailProvider(widget.slug));
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -59,7 +87,7 @@ class MovieDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.invalidate(movieDetailProvider(slug)),
+                  onPressed: () => ref.invalidate(movieDetailProvider(widget.slug)),
                   child: const Text('Дахин оролдох'),
                 ),
               ],
@@ -237,26 +265,37 @@ class MovieDetailScreen extends ConsumerWidget {
                         featuredEpisode.streamVideo?.isReady == true &&
                         featuredSeason != null)
                       ElevatedButton.icon(
-                        onPressed: () => context.push(
-                          '/player',
-                          extra: {
-                            'hlsUrl': featuredEpisode.streamVideo!.hlsUrl ?? '',
-                            'title':
-                                '${movie.title} · S${featuredSeason.seasonNumber}E${featuredEpisode.episodeNumber}',
-                            'seriesTitle': movie.title,
-                            'watchableType': 'episode',
-                            'watchableId': featuredEpisode.id,
-                            'currentEpisodeId': featuredEpisode.id,
-                            'currentSeasonNumber': featuredSeason.seasonNumber,
-                            'startPosition':
-                                detail.episodeProgress[featuredEpisode.id] ?? 0,
-                            'subtitleTracks':
-                                featuredEpisode.streamVideo!.subtitleTracks,
-                            'seasons': series!.seasons,
-                            'episodeProgress': detail.episodeProgress,
-                          },
-                        ),
-                        icon: const Icon(Icons.play_arrow),
+                        onPressed: _checkingAccess
+                            ? null
+                            : () => _launchPlayer(
+                                {
+                                  'hlsUrl': featuredEpisode.streamVideo!.hlsUrl ?? '',
+                                  'title':
+                                      '${movie.title} · S${featuredSeason.seasonNumber}E${featuredEpisode.episodeNumber}',
+                                  'seriesTitle': movie.title,
+                                  'watchableType': 'episode',
+                                  'watchableId': featuredEpisode.id,
+                                  'currentEpisodeId': featuredEpisode.id,
+                                  'currentSeasonNumber': featuredSeason.seasonNumber,
+                                  'startPosition':
+                                      detail.episodeProgress[featuredEpisode.id] ?? 0,
+                                  'subtitleTracks':
+                                      featuredEpisode.streamVideo!.subtitleTracks,
+                                  'seasons': series!.seasons,
+                                  'episodeProgress': detail.episodeProgress,
+                                },
+                                isFree: movie.isFree,
+                              ),
+                        icon: _checkingAccess
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black54,
+                                ),
+                              )
+                            : const Icon(Icons.play_arrow),
                         label: Text(
                           (detail.episodeProgress[featuredEpisode.id] ?? 0) > 0
                               ? 'Үргэлжлүүлэн үзэх'
@@ -268,18 +307,29 @@ class MovieDetailScreen extends ConsumerWidget {
                       )
                     else if (canPlay && movie.streamVideo?.isReady == true)
                       ElevatedButton.icon(
-                        onPressed: () => context.push(
-                          '/player',
-                          extra: {
-                            'hlsUrl': movie.streamVideo!.hlsUrl ?? '',
-                            'title': movie.title,
-                            'watchableType': 'movie',
-                            'watchableId': movie.id,
-                            'startPosition': detail.movieProgress ?? 0,
-                            'subtitleTracks': movie.streamVideo!.subtitleTracks,
-                          },
-                        ),
-                        icon: const Icon(Icons.play_arrow),
+                        onPressed: _checkingAccess
+                            ? null
+                            : () => _launchPlayer(
+                                {
+                                  'hlsUrl': movie.streamVideo!.hlsUrl ?? '',
+                                  'title': movie.title,
+                                  'watchableType': 'movie',
+                                  'watchableId': movie.id,
+                                  'startPosition': detail.movieProgress ?? 0,
+                                  'subtitleTracks': movie.streamVideo!.subtitleTracks,
+                                },
+                                isFree: movie.isFree,
+                              ),
+                        icon: _checkingAccess
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black54,
+                                ),
+                              )
+                            : const Icon(Icons.play_arrow),
                         label: Text(
                           detail.movieProgress != null &&
                                   detail.movieProgress! > 0
@@ -298,7 +348,7 @@ class MovieDetailScreen extends ConsumerWidget {
                                   context: context,
                                   ref: ref,
                                   movie: movie,
-                                  slug: slug,
+                                  slug: widget.slug,
                                 )
                               : null,
                           icon: const Icon(Icons.shopping_bag_outlined),
