@@ -22,8 +22,9 @@ import '../models/season.dart';
 import '../models/subtitle_track.dart';
 import '../providers/app_config_provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/pending_deep_link.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -31,7 +32,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/auth/loading',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
@@ -50,9 +51,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuth = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login';
 
-      if (isLoadingRoute) return isAuth ? '/' : '/login';
+      if (isLoadingRoute) {
+        if (!isAuth) return '/login';
+        return PendingDeepLink.consume() ?? '/';
+      }
       if (!isAuth && !isAuthRoute) return '/login';
-      if (isAuth && isAuthRoute) return '/';
+      if (isAuth && isAuthRoute) return PendingDeepLink.consume() ?? '/';
       return null;
     },
     routes: [
