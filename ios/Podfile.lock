@@ -202,6 +202,7 @@ DEPENDENCIES:
   - flutter_volume_controller (from `.symlinks/plugins/flutter_volume_controller/ios`)
   - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
   - onesignal_flutter (from `.symlinks/plugins/onesignal_flutter/ios`)
+  - OneSignalXCFramework/OneSignalExtension
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - screen_brightness_ios (from `.symlinks/plugins/screen_brightness_ios/ios`)
@@ -312,6 +313,6 @@ SPEC CHECKSUMS:
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
   video_player_avfoundation: 2cef49524dd1f16c5300b9cd6efd9611ce03639b
 
-PODFILE CHECKSUM: 2c71b35d6e5a3dc86bf322db87556de3700b44a6
+PODFILE CHECKSUM: 3ba79a4f9c4128746c7a970e8082518e17684c39
 
 COCOAPODS: 1.16.2

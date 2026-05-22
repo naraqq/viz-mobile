@@ -82,6 +82,10 @@
 		<string>bogdbank</string>
 		<string>nibank</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app does not use your location. This permission is requested by a third-party SDK.</string>
 	<key>UIStatusBarHidden</key>
