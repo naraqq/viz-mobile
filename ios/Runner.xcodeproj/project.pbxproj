@@ -31,13 +31,6 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
-		B8F01B61D9B17A25E3E3BFD7 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 409400794D6D0B96F7B38849;
-			remoteInfo = OneSignalNotificationServiceExtension;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -281,7 +274,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				8D771ACF4E84AC81A24AC200 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -524,12 +516,6 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
-		};
-		8D771ACF4E84AC81A24AC200 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = OneSignalNotificationServiceExtension;
-			target = 409400794D6D0B96F7B38849 /* OneSignalNotificationServiceExtension */;
-			targetProxy = B8F01B61D9B17A25E3E3BFD7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
