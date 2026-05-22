@@ -37,10 +37,49 @@ LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"
 # NSE as an implicit dependency via the Embed App Extensions phase — keeping the explicit
 # dependency too causes it to be scheduled twice, producing "Multiple commands produce .appex".
 PBXPROJ="$REPO_ROOT/ios/Runner.xcodeproj/project.pbxproj"
-grep -v "8D771ACF4E84AC81A24AC200 /\* PBXTargetDependency \*/," "$PBXPROJ" > /tmp/project_patched.pbxproj \
-  && mv /tmp/project_patched.pbxproj "$PBXPROJ" \
-  || { echo "ERROR: failed to patch project.pbxproj"; exit 1; }
+ruby - "$PBXPROJ" <<'RUBY' || { echo "ERROR: failed to patch project.pbxproj"; exit 1; }
+path = ARGV.fetch(0)
+project = File.read(path)
+
+project.gsub!(
+  /\n\t\tB8F01B61D9B17A25E3E3BFD7 \/\* PBXContainerItemProxy \*\/ = \{.*?\n\t\t\};/m,
+  ""
+)
+
+project.gsub!(
+  /\n\t\t8D771ACF4E84AC81A24AC200 \/\* PBXTargetDependency \*\/ = \{.*?\n\t\t\};/m,
+  ""
+)
+
+project.gsub!(
+  /\n\t\t\t\t8D771ACF4E84AC81A24AC200 \/\* PBXTargetDependency \*\/,/,
+  ""
+)
+
+File.write(path, project)
+RUBY
 echo "=== Patched project: removed NSE explicit dependency from Runner ==="
+
+PODS_DIR="$REPO_ROOT/ios/Pods"
+ruby - "$PODS_DIR" <<'RUBY' || { echo "ERROR: failed to patch OneSignal pod outputs"; exit 1; }
+pods_dir = ARGV.fetch(0)
+files = Dir[
+  File.join(pods_dir, "Target Support Files/OneSignalXCFramework-192fe2b2/*"),
+  File.join(pods_dir, "Target Support Files/Pods-OneSignalNotificationServiceExtension/*.xcconfig")
+]
+
+files.each do |path|
+  next unless File.file?(path)
+
+  contents = File.read(path)
+  patched = contents
+    .gsub("${PODS_XCFRAMEWORKS_BUILD_DIR}/OneSignalXCFramework/", "${PODS_XCFRAMEWORKS_BUILD_DIR}/OneSignalXCFrameworkExtension/")
+    .gsub("\"OneSignalXCFramework/", "\"OneSignalXCFrameworkExtension/")
+
+  File.write(path, patched) if patched != contents
+end
+RUBY
+echo "=== Patched OneSignal extension XCFramework output paths ==="
 
 echo "=== firebase_auth headers after pod install ==="
 find "$REPO_ROOT/ios/Pods" -name "FLTFirebaseAuthPlugin.h" 2>/dev/null || echo "HEADER NOT FOUND"
