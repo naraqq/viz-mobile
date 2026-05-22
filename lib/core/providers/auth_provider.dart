@@ -19,6 +19,7 @@ class AuthState {
   final bool isLoading;
   final bool needsPassword;
   final String? error;
+  final String? forcedLogoutMessage;
 
   const AuthState({
     this.user,
@@ -26,6 +27,7 @@ class AuthState {
     this.isLoading = false,
     this.needsPassword = false,
     this.error,
+    this.forcedLogoutMessage,
   });
 
   bool get isAuthenticated => user != null;
@@ -36,12 +38,14 @@ class AuthState {
     bool? isLoading,
     bool? needsPassword,
     String? error,
+    String? forcedLogoutMessage,
   }) => AuthState(
     user: user ?? this.user,
     isInitializing: isInitializing ?? this.isInitializing,
     isLoading: isLoading ?? this.isLoading,
     needsPassword: needsPassword ?? this.needsPassword,
     error: error,
+    forcedLogoutMessage: forcedLogoutMessage,
   );
 
   AuthState clearError() => AuthState(
@@ -49,6 +53,7 @@ class AuthState {
     isInitializing: isInitializing,
     isLoading: isLoading,
     needsPassword: needsPassword,
+    forcedLogoutMessage: forcedLogoutMessage,
   );
 }
 
@@ -56,7 +61,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final ApiClient _api;
 
   AuthNotifier(this._api) : super(const AuthState(isInitializing: true)) {
+    _api.onUnauthorized = _forceLogout;
     _init();
+  }
+
+  Future<void> _forceLogout(String reason) async {
+    await _api.clearToken();
+    state = AuthState(forcedLogoutMessage: reason);
+  }
+
+  void consumeForcedLogoutMessage() {
+    if (state.forcedLogoutMessage != null) {
+      state = state.copyWith(forcedLogoutMessage: null);
+    }
   }
 
   Future<void> _init() async {

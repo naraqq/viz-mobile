@@ -39,6 +39,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
     _anim.forward();
+
+    // Show forced-logout banner (e.g. kicked by another device login).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final msg = ref.read(authProvider).forcedLogoutMessage;
+      if (msg != null && mounted) {
+        ref.read(authProvider.notifier).consumeForcedLogoutMessage();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    });
   }
 
   @override

@@ -10,6 +10,12 @@ String get _currentPlatform {
   return 'web';
 }
 
+// Called when a non-login request gets a 401 — session was revoked.
+typedef UnauthorizedCallback = void Function(String reason);
+
+// Paths where a 401 is a normal credential error, not a revoked session.
+const _authPaths = {'/auth/login', '/auth/register', '/auth/google', '/auth/apple'};
+
 class ApiClient {
   static const _tokenKey = 'auth_token';
 
@@ -17,11 +23,14 @@ class ApiClient {
   final FlutterSecureStorage _storage;
   String? _token;
 
+  /// Set by AuthNotifier to handle session revocation.
+  UnauthorizedCallback? onUnauthorized;
+
   ApiClient({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage(),
         _dio = Dio(
           BaseOptions(
-            baseUrl: ApiEndpoints.baseUrl, // resolved after AppRemoteConfig.init()
+            baseUrl: ApiEndpoints.baseUrl,
             connectTimeout: const Duration(seconds: 15),
             receiveTimeout: const Duration(seconds: 30),
             headers: {
@@ -42,10 +51,27 @@ class ApiClient {
           handler.next(options);
         },
         onError: (error, handler) {
+          final status = error.response?.statusCode;
+          final path = error.requestOptions.path;
+          if (status == 401 && !_authPaths.contains(path)) {
+            final reason = _extractReason(error.response?.data);
+            onUnauthorized?.call(reason);
+          }
           handler.next(error);
         },
       ),
     );
+  }
+
+  static String _extractReason(dynamic data) {
+    if (data is Map) {
+      final msg = data['message']?.toString().toLowerCase() ?? '';
+      if (msg.contains('device') || msg.contains('session') ||
+          msg.contains('another') || msg.contains('terminated')) {
+        return 'Таны акаунт өөр төхөөрөмж дээр нэвтэрсэн байна. Дахин нэвтэрнэ үү.';
+      }
+    }
+    return 'Таны сеш дууссан байна. Дахин нэвтэрнэ үү.';
   }
 
   Future<void> saveToken(String token, {bool remember = true}) async {
