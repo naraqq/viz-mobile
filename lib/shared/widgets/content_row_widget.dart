@@ -19,7 +19,7 @@ class ContentRowWidget extends StatelessWidget {
             row.label,
             style: const TextStyle(
               color: AppTheme.textPrimary,
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
