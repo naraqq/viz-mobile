@@ -138,6 +138,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = res.data!['token'] as String;
       await _api.saveToken(token);
       final user = User.fromJson(res.data!['user'] as Map<String, dynamic>);
+      OneSignal.login(user.id.toString());
       state = AuthState(user: user);
       return true;
     } on DioException catch (e) {
