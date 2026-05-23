@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_loading_screen.dart';
@@ -83,37 +83,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/browse',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const BrowseScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            CupertinoPage(key: state.pageKey, child: const BrowseScreen()),
       ),
       GoRoute(
         path: '/notifications',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const NotificationsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            CupertinoPage(key: state.pageKey, child: const NotificationsScreen()),
       ),
       GoRoute(
         path: '/plans',
         pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const PlansScreen()),
+            CupertinoPage(key: state.pageKey, child: const PlansScreen()),
       ),
       GoRoute(
         path: '/profile/edit',
         pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const EditProfileScreen()),
+            CupertinoPage(key: state.pageKey, child: const EditProfileScreen()),
       ),
       GoRoute(
         path: '/profile/rentals',
         pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const RentalsScreen()),
+            CupertinoPage(key: state.pageKey, child: const RentalsScreen()),
       ),
       GoRoute(
         path: '/profile/about',
         pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const AboutScreen()),
+            CupertinoPage(key: state.pageKey, child: const AboutScreen()),
       ),
       GoRoute(
         path: '/force-update',
@@ -136,17 +132,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/genres',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const GenreListScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            CupertinoPage(key: state.pageKey, child: const GenreListScreen()),
       ),
       GoRoute(
         path: '/genres/:slug',
         pageBuilder: (context, state) {
           final slug = state.pathParameters['slug']!;
           final label = state.uri.queryParameters['label'] ?? slug;
-          return NoTransitionPage(
+          return CupertinoPage(
             key: state.pageKey,
             child: GenreContentScreen(slug: slug, label: label),
           );
@@ -156,7 +150,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/movies/:slug',
         pageBuilder: (context, state) {
           final slug = state.pathParameters['slug']!;
-          return NoTransitionPage(
+          return CupertinoPage(
             key: state.pageKey,
             child: MovieDetailScreen(slug: slug),
           );
@@ -166,7 +160,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/shows/:slug',
         pageBuilder: (context, state) {
           final slug = state.pathParameters['slug']!;
-          return NoTransitionPage(
+          return CupertinoPage(
             key: state.pageKey,
             child: ShowDetailScreen(slug: slug),
           );
