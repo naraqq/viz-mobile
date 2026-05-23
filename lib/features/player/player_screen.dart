@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import '../../core/models/episode.dart';
 import '../../core/models/season.dart';
 import '../../core/models/subtitle_track.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/screen_security_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'subtitle_parser.dart';
 
@@ -137,6 +139,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   bool _upNextVisible = false;
   bool _upNextDismissed = false;
 
+  // Screen recording protection (iOS only)
+  bool _isRecording = false;
+  StreamSubscription<bool>? _recordingSub;
+
   @override
   void initState() {
     super.initState();
@@ -157,6 +163,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     _enterFullscreen();
     _initPlayer();
     _initGestureValues();
+    ScreenSecurityService.enable();
+    if (Platform.isIOS) {
+      _recordingSub = ScreenSecurityService.captureStream.listen((recording) {
+        if (mounted) setState(() => _isRecording = recording);
+      });
+    }
   }
 
   void _enterFullscreen() {
@@ -623,6 +635,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       _controller.removeListener(_onVideoUpdate);
     }
     _controller.dispose();
+    _recordingSub?.cancel();
+    ScreenSecurityService.disable();
     ScreenBrightness().resetScreenBrightness().catchError((_) {});
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -774,6 +788,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                   ),
                 );
               }),
+
+            // ── Screen recording block ─────────────────────────────────────
+            if (_isRecording)
+              const ColoredBox(
+                color: Colors.black,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.videocam_off_rounded, color: Colors.white38, size: 64),
+                      SizedBox(height: 16),
+                      Text(
+                        'Screen recording is not allowed',
+                        style: TextStyle(color: Colors.white38, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // ── Controls ───────────────────────────────────────────────────
             AnimatedOpacity(
