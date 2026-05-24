@@ -29,7 +29,7 @@ flutter precache --ios || { echo "ERROR: precache failed"; exit 1; }
 
 cd "$REPO_ROOT/ios"
 pod repo remove trunk 2>/dev/null || true
-LANG=en_US.UTF-8 pod install --repo-update || { echo "ERROR: pod install failed"; exit 1; }
+LANG=en_US.UTF-8 pod install --no-repo-update || { echo "ERROR: pod install failed"; exit 1; }
 
 # Remove the explicit PBXTargetDependency from Runner AFTER pod install.
 # CocoaPods needs it during 'pod install' to identify Runner as the NSE host target.
