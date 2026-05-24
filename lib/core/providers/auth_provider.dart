@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_core/firebase_core.dart' show Firebase;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -216,12 +217,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
 
-      final oauthCredential = fb.OAuthProvider('apple.com').credential(
-        idToken: identityToken,
-        rawNonce: rawNonce,
+      // Bypass Firebase SDK — call Identity Toolkit REST API directly.
+      // The SDK always attempts an OAuth code exchange which Apple rejects;
+      // the REST API uses the identity token + nonce path correctly.
+      final apiKey = Firebase.app().options.apiKey;
+      final postBody = Uri(queryParameters: {
+        'id_token': identityToken,
+        'nonce': rawNonce,
+        'providerId': 'apple.com',
+      }).query;
+
+      final restDio = Dio();
+      final fbRes = await restDio.post<Map<String, dynamic>>(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp',
+        queryParameters: {'key': apiKey},
+        data: {
+          'requestUri': 'https://screenx-ee8de.firebaseapp.com/__/auth/handler',
+          'postBody': postBody,
+          'returnSecureToken': true,
+        },
       );
-      final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(oauthCredential);
-      final firebaseIdToken = await fbUser.user!.getIdToken();
+      final firebaseIdToken = fbRes.data!['idToken'] as String;
 
       final res = await _api.post<Map<String, dynamic>>(
         ApiEndpoints.appleAuth,
@@ -241,15 +257,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(isLoading: false, error: 'Apple нэвтрэлт амжилтгүй: ${e.message}');
       }
       return false;
-    } on fb.FirebaseAuthException catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Firebase алдаа: ${e.code}');
-      return false;
     } on DioException catch (e) {
-      state = state.copyWith(isLoading: false, error: _extractError(e));
+      String? fbMsg;
+      final resData = e.response?.data;
+      if (resData is Map) {
+        final err = resData['error'];
+        if (err is Map) fbMsg = err['message']?.toString();
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: fbMsg != null ? 'Apple нэвтрэлт: $fbMsg' : _extractError(e),
+      );
       return false;
     } catch (e) {
       final s = e.toString();
-      state = state.copyWith(isLoading: false, error: s.length > 120 ? s.substring(0, 120) : s);
+      state = state.copyWith(isLoading: false, error: s.length > 200 ? s.substring(0, 200) : s);
       return false;
     }
   }

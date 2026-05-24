@@ -99,7 +99,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF2A2A2A)),
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        backgroundColor: const Color(0xFFB00020),
+        duration: const Duration(seconds: 5),
+      ),
     );
   }
 
