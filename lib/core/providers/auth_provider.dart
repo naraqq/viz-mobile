@@ -194,7 +194,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> signInWithApple() async {
-    state = state.clearError();
+    state = state.copyWith(isLoading: true, error: null);
     try {
       final rawNonce = _generateNonce();
       final nonce = _sha256(rawNonce);
@@ -207,8 +207,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         nonce: nonce,
       );
 
+      final identityToken = appleCredential.identityToken;
+      if (identityToken == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Apple identity token хүлээн авсангүй. Дахин оролдоно уу.',
+        );
+        return false;
+      }
+
       final oauthCredential = fb.OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
+        idToken: identityToken,
         rawNonce: rawNonce,
       );
       final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(oauthCredential);
@@ -227,20 +236,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
-        state = state.copyWith(error: 'Apple нэвтрэлт цуцлагдлаа.');
+        state = state.copyWith(isLoading: false, error: 'Apple нэвтрэлт цуцлагдлаа.');
       } else {
-        state = state.copyWith(error: 'Apple нэвтрэлт амжилтгүй: ${e.message}');
+        state = state.copyWith(isLoading: false, error: 'Apple нэвтрэлт амжилтгүй: ${e.message}');
       }
       return false;
     } on fb.FirebaseAuthException catch (e) {
-      state = state.copyWith(error: 'Firebase: ${e.code} — ${e.message}');
+      state = state.copyWith(isLoading: false, error: 'Firebase алдаа: ${e.code}');
       return false;
     } on DioException catch (e) {
-      state = state.copyWith(error: _extractError(e));
+      state = state.copyWith(isLoading: false, error: _extractError(e));
       return false;
     } catch (e) {
       final s = e.toString();
-      state = state.copyWith(error: s.length > 120 ? s.substring(0, 120) : s);
+      state = state.copyWith(isLoading: false, error: s.length > 120 ? s.substring(0, 120) : s);
       return false;
     }
   }

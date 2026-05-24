@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,9 +18,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
   bool _obscure = true;
-  bool _isRegistering = false;
   bool _googleLoading = false;
   bool _appleLoading = false;
 
@@ -43,7 +40,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
     _anim.forward();
 
-    // Show forced-logout banner (e.g. kicked by another device login).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = ref.read(authProvider).forcedLogoutMessage;
       if (msg != null && mounted) {
@@ -64,7 +60,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _anim.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _nameCtrl.dispose();
     super.dispose();
   }
 
@@ -119,37 +114,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } else {
       _showError(ref.read(authProvider).error ?? 'Нэвтрэхэд алдаа гарлаа');
     }
-  }
-
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
-    final email = _emailCtrl.text.trim();
-    final name = _nameCtrl.text.trim().isEmpty
-        ? email.split('@').first
-        : _nameCtrl.text.trim();
-    const chars =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final rng = Random.secure();
-    final tempPass =
-        List.generate(24, (_) => chars[rng.nextInt(chars.length)]).join();
-    final ok = await ref
-        .read(authProvider.notifier)
-        .register(name, email, tempPass);
-    if (!mounted) return;
-    if (ok) {
-      await _showSetPasswordDialog();
-      if (mounted) context.go('/');
-    } else {
-      _showError(ref.read(authProvider).error ?? 'Бүртгүүлэхэд алдаа гарлаа');
-    }
-  }
-
-  void _toggleMode() {
-    _formKey.currentState?.reset();
-    _emailCtrl.clear();
-    _passCtrl.clear();
-    _nameCtrl.clear();
-    setState(() => _isRegistering = !_isRegistering);
   }
 
   Future<void> _showSetPasswordDialog() async {
@@ -248,7 +212,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Subtle top radial glow
           Positioned(
             top: -size.height * 0.15,
             left: 0,
@@ -281,7 +244,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       children: [
                         SizedBox(height: size.height * 0.08),
 
-                        // ── Brand ───────────────────────────────────────────
                         Center(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(30),
@@ -308,17 +270,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                         SizedBox(height: size.height * 0.06),
 
-                        // ── Name field (register only) ──────────────────────
-                        if (_isRegistering) ...[
-                          _Field(
-                            controller: _nameCtrl,
-                            hint: 'Нэр (заавал биш)',
-                            icon: Icons.person_outline_rounded,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-
-                        // ── Email field ─────────────────────────────────────
                         _Field(
                           controller: _emailCtrl,
                           hint: 'И-мэйл хаяг',
@@ -329,31 +280,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               : null,
                         ),
 
-                        // ── Password field (login only) ─────────────────────
-                        if (!_isRegistering) ...[
-                          const SizedBox(height: 12),
-                          _Field(
-                            controller: _passCtrl,
-                            hint: 'Нууц үг',
-                            icon: Icons.lock_outline_rounded,
-                            obscure: _obscure,
-                            onToggleObscure: () =>
-                                setState(() => _obscure = !_obscure),
-                            validator: (v) => v == null || v.length < 8
-                                ? 'Нууц үг хэт богино байна'
-                                : null,
-                          ),
-                        ],
+                        const SizedBox(height: 12),
+
+                        _Field(
+                          controller: _passCtrl,
+                          hint: 'Нууц үг',
+                          icon: Icons.lock_outline_rounded,
+                          obscure: _obscure,
+                          onToggleObscure: () =>
+                              setState(() => _obscure = !_obscure),
+                          validator: (v) => v == null || v.length < 8
+                              ? 'Нууц үг хэт богино байна'
+                              : null,
+                        ),
 
                         const SizedBox(height: 20),
 
-                        // ── Primary button ──────────────────────────────────
                         SizedBox(
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: (isLoading || _anyLoading)
-                                ? null
-                                : (_isRegistering ? _register : _submit),
+                            onPressed: (isLoading || _anyLoading) ? null : _submit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
@@ -373,9 +319,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       color: Colors.white,
                                     ),
                                   )
-                                : Text(
-                                    _isRegistering ? 'Бүртгүүлэх' : 'Нэвтрэх',
-                                    style: const TextStyle(
+                                : const Text(
+                                    'Нэвтрэх',
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -383,25 +329,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
 
-                        // ── Login / Register toggle ─────────────────────────
-                        const SizedBox(height: 16),
-                        GestureDetector(
-                          onTap: (isLoading || _anyLoading) ? null : _toggleMode,
-                          child: Text(
-                            _isRegistering
-                                ? 'Данс байгаа юу? Нэвтрэх'
-                                : 'Данс байхгүй юу? Бүртгүүлэх',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Color(0xFF888888),
-                              fontSize: 13,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Color(0xFF888888),
-                            ),
-                          ),
-                        ),
-
-                        // ── Divider ─────────────────────────────────────────
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 28),
                           child: Row(
@@ -423,7 +350,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
 
-                        // ── Social sign-in ──────────────────────────────────
                         _SocialButton(
                           onTap: (isLoading || _anyLoading) ? null : _googleSignIn,
                           loading: _googleLoading,
@@ -455,45 +381,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 12),
-
-                        _SocialButton(
-                          onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
-                          loading: _appleLoading,
-                          backgroundColor: const Color(0xFF1C1C1E),
-                          border: Border.all(color: const Color(0xFF3A3A3A)),
-                          loadingColor: Colors.white,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.apple, color: Colors.white, size: 22),
-                              SizedBox(width: 10),
-                              Text(
-                                'Apple-ээр нэвтрэх',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                        if (Platform.isIOS) ...[
+                          const SizedBox(height: 12),
+                          _SocialButton(
+                            onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
+                            loading: _appleLoading,
+                            backgroundColor: const Color(0xFF1C1C1E),
+                            border: Border.all(color: const Color(0xFF3A3A3A)),
+                            loadingColor: Colors.white,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.apple, color: Colors.white, size: 22),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Apple-ээр нэвтрэх',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
 
                         SizedBox(height: size.height * 0.04),
 
-                        if (!_isRegistering)
-                          Text(
-                            Platform.isIOS
-                                ? 'Эсвэл Google / Apple-ээр нэвтрэн шинэ данс үүсгэж болно.'
-                                : 'Эсвэл Google-ээр нэвтрэн шинэ данс үүсгэж болно.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Color(0xFF444444),
-                              fontSize: 12,
-                              height: 1.6,
-                            ),
+                        Text(
+                          Platform.isIOS
+                              ? 'Google эсвэл Apple-ээр нэвтэрч шинэ данс үүсгэж болно.'
+                              : 'Google-ээр нэвтэрч шинэ данс үүсгэж болно.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF444444),
+                            fontSize: 12,
+                            height: 1.6,
                           ),
+                        ),
 
                         const SizedBox(height: 24),
                       ],
@@ -508,8 +434,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 }
-
-// ─── Social button ─────────────────────────────────────────────────────────────
 
 class _SocialButton extends StatelessWidget {
   final VoidCallback? onTap;
@@ -559,8 +483,6 @@ class _SocialButton extends StatelessWidget {
     );
   }
 }
-
-// ─── Text field ────────────────────────────────────────────────────────────────
 
 class _Field extends StatelessWidget {
   final TextEditingController controller;
