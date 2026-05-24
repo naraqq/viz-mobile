@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_loading_screen.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/set_password_screen.dart';
 import '../../features/browse/browse_screen.dart';
 import '../../features/genres/genre_content_screen.dart';
 import '../../features/genres/genre_list_screen.dart';
@@ -42,21 +43,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final authState = ref.read(authProvider);
-      final isLoadingRoute = state.matchedLocation == '/auth/loading';
+      final loc = state.matchedLocation;
 
       if (authState.isInitializing) {
-        return isLoadingRoute ? null : '/auth/loading';
+        return loc == '/auth/loading' ? null : '/auth/loading';
       }
 
       final isAuth = authState.isAuthenticated;
-      final isAuthRoute = state.matchedLocation == '/login';
 
-      if (isLoadingRoute) {
+      // Authenticated user who needs to create a password must stay on set-password.
+      if (isAuth && authState.needsPassword) {
+        return loc == '/set-password' ? null : '/set-password';
+      }
+
+      // Kick authenticated users away from auth-only routes.
+      if (loc == '/set-password') return isAuth ? '/' : '/login';
+      if (loc == '/auth/loading') {
         if (!isAuth) return '/login';
         return PendingDeepLink.consume() ?? '/';
       }
-      if (!isAuth && !isAuthRoute) return '/login';
-      if (isAuth && isAuthRoute) return PendingDeepLink.consume() ?? '/';
+      if (!isAuth && loc != '/login') return '/login';
+      if (isAuth && loc == '/login') return PendingDeepLink.consume() ?? '/';
       return null;
     },
     routes: [
@@ -122,6 +129,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const LoginScreen()),
+      ),
+      GoRoute(
+        path: '/set-password',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const SetPasswordScreen()),
       ),
       GoRoute(
         path: '/auth/loading',

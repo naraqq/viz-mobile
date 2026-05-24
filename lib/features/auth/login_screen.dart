@@ -70,15 +70,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final ok = await ref.read(authProvider.notifier).signInWithGoogle();
     if (!mounted) return;
     setState(() => _googleLoading = false);
-    if (ok) {
-      if (ref.read(authProvider).needsPassword) {
-        await _showSetPasswordDialog();
-      } else {
-        context.go('/');
-      }
-    } else {
+    if (!ok) {
       _showError(ref.read(authProvider).error ?? 'Google нэвтрэлт амжилтгүй боллоо');
     }
+    // Router redirects automatically on success (/ or /set-password based on needsPassword).
   }
 
   Future<void> _appleSignIn() async {
@@ -86,15 +81,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final ok = await ref.read(authProvider.notifier).signInWithApple();
     if (!mounted) return;
     setState(() => _appleLoading = false);
-    if (ok) {
-      if (ref.read(authProvider).needsPassword) {
-        await _showSetPasswordDialog();
-      } else {
-        context.go('/');
-      }
-    } else {
+    if (!ok) {
       _showError(ref.read(authProvider).error ?? 'Apple нэвтрэлт амжилтгүй боллоо');
     }
+    // Router redirects automatically on success (/ or /set-password based on needsPassword).
   }
 
   void _showError(String msg) {
@@ -118,93 +108,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } else {
       _showError(ref.read(authProvider).error ?? 'Нэвтрэхэд алдаа гарлаа');
     }
-  }
-
-  Future<void> _showSetPasswordDialog() async {
-    final passCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool obscure = true;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: StatefulBuilder(
-          builder: (ctx, setS) => AlertDialog(
-            backgroundColor: const Color(0xFF1A1A1A),
-            title: const Text(
-              'Нууц үг тохируулах',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'И-мэйлээр нэвтэрч чадахын тулд нууц үг үүсгэнэ үү.',
-                    style: TextStyle(color: Colors.white60, fontSize: 13),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: passCtrl,
-                    obscureText: obscure,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Нууц үг',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscure
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: Colors.white38,
-                        ),
-                        onPressed: () => setS(() => obscure = !obscure),
-                      ),
-                    ),
-                    validator: (v) =>
-                        v == null || v.length < 8 ? 'Хамгийн багадаа 8 тэмдэгт' : null,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              Consumer(
-                builder: (_, ref2, __) {
-                  final loading = ref2.watch(authProvider).isLoading;
-                  return ElevatedButton(
-                    onPressed: loading
-                        ? null
-                        : () async {
-                            if (!formKey.currentState!.validate()) return;
-                            final ok = await ref2
-                                .read(authProvider.notifier)
-                                .setPassword(passCtrl.text);
-                            if (ok && ctx.mounted) {
-                              Navigator.of(ctx).pop();
-                              if (mounted) context.go('/');
-                            } else if (ctx.mounted && mounted) {
-                              _showError(ref2.read(authProvider).error ?? 'Алдаа гарлаа');
-                            }
-                          },
-                    child: loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Хадгалах'),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    passCtrl.dispose();
   }
 
   @override
