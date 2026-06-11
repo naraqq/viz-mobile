@@ -1,7 +1,7 @@
 name: viz_flutter
 description: "monfilm - Streaming App"
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+8
 
 environment:
   sdk: ^3.8.1
