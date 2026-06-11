@@ -27,7 +27,7 @@ class MovieDetailScreen extends ConsumerStatefulWidget {
 class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
   bool _checkingAccess = false;
 
-  Future<void> _launchPlayer(Map<String, dynamic> playerArgs, {bool isFree = false}) async {
+  Future<void> _launchPlayer(Map<String, dynamic> playerArgs, {bool isFree = false, String accessModel = ''}) async {
     setState(() => _checkingAccess = true);
     try {
       final ok = await verifyPlayAccess(
@@ -35,6 +35,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
         slug: widget.slug,
         isMovie: true,
         isFree: isFree,
+        accessModel: accessModel,
       );
       if (!mounted) return;
       if (ok) {
@@ -96,13 +97,10 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
         ),
         data: (detail) {
           final movie = detail.movie;
-          final hasActiveSubscription =
-              ref.watch(authProvider).user?.hasActiveSubscription == true;
           final canPlay =
               detail.canWatch ||
               detail.hasRental ||
-              movie.isFree ||
-              hasActiveSubscription;
+              movie.isFree;
           final series = detail.series;
           final featuredEpisode = series != null
               ? _findResumeEpisode(series.seasons, detail.episodeProgress) ??
@@ -285,6 +283,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                                   'episodeProgress': detail.episodeProgress,
                                 },
                                 isFree: movie.isFree,
+                                accessModel: movie.accessModel,
                               ),
                         icon: _checkingAccess
                             ? const SizedBox(
@@ -319,6 +318,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                                   'subtitleTracks': movie.streamVideo!.subtitleTracks,
                                 },
                                 isFree: movie.isFree,
+                                accessModel: movie.accessModel,
                               ),
                         icon: _checkingAccess
                             ? const SizedBox(

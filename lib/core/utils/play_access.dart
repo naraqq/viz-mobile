@@ -16,6 +16,7 @@ Future<bool> verifyPlayAccess({
   required String slug,
   required bool isMovie,
   bool isFree = false,
+  String accessModel = '',
 }) async {
   final api = ref.read(apiClientProvider);
   final endpoint =
@@ -31,14 +32,14 @@ Future<bool> verifyPlayAccess({
         (results[1] as dynamic).data as Map<String, dynamic>;
     final canWatch = readBool(data['can_watch']);
     final hasRental = readBool(data['has_rental']);
-    final user = ref.read(authProvider).user;
 
-    return canWatch || hasRental || isFree || (user?.hasActiveSubscription == true);
+    return canWatch || hasRental || isFree;
   } catch (_) {
     // Network error — fall back to cached subscription status so a bad
     // connection doesn't lock out a legitimate subscriber.
+    // Rental content requires an actual rental even offline.
     final user = ref.read(authProvider).user;
-    return isFree || (user?.hasActiveSubscription == true);
+    return isFree || (accessModel != 'rent' && user?.hasActiveSubscription == true);
   }
 }
 
