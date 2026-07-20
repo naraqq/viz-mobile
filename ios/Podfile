@@ -70,4 +70,17 @@ post_install do |installer|
       phase.output_paths = []
     end
   end
+
+  # Make FLUTTER_BUILD_NUMBER available in the NSE xcconfig chain so that
+  # CURRENT_PROJECT_VERSION = $(FLUTTER_BUILD_NUMBER) resolves to a non-null
+  # value. Apple requires the extension CFBundleVersion to match the host app.
+  nse_xcconfig_dir = File.join(installer.sandbox.root, 'Target Support Files', 'Pods-OneSignalNotificationServiceExtension')
+  if Dir.exist?(nse_xcconfig_dir)
+    Dir.glob("#{nse_xcconfig_dir}/*.xcconfig").each do |xcconfig_path|
+      content = File.read(xcconfig_path)
+      include_line = '#include? "../../../Flutter/Generated.xcconfig"'
+      next if content.include?(include_line)
+      File.write(xcconfig_path, "#{include_line}\n#{content}")
+    end
+  end
 end
