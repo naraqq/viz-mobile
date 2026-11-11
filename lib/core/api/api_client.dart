@@ -14,7 +14,12 @@ String get _currentPlatform {
 typedef UnauthorizedCallback = void Function(String reason);
 
 // Paths where a 401 is a normal credential error, not a revoked session.
-const _authPaths = {'/auth/login', '/auth/register', '/auth/google', '/auth/apple'};
+const _authPaths = {
+  '/auth/login',
+  '/auth/register',
+  '/auth/google',
+  '/auth/apple',
+};
 
 class ApiClient {
   static const _tokenKey = 'auth_token';
@@ -27,19 +32,19 @@ class ApiClient {
   UnauthorizedCallback? onUnauthorized;
 
   ApiClient({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(),
-        _dio = Dio(
-          BaseOptions(
-            baseUrl: ApiEndpoints.baseUrl,
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 30),
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'X-Platform': _currentPlatform,
-            },
-          ),
-        ) {
+    : _storage = storage ?? const FlutterSecureStorage(),
+      _dio = Dio(
+        BaseOptions(
+          baseUrl: ApiEndpoints.baseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Platform': _currentPlatform,
+          },
+        ),
+      ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -50,12 +55,26 @@ class ApiClient {
           }
           handler.next(options);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           final status = error.response?.statusCode;
           final path = error.requestOptions.path;
           if (status == 401 && !_authPaths.contains(path)) {
             final reason = _extractReason(error.response?.data);
             onUnauthorized?.call(reason);
+          }
+          // A GET that died without any response (dropped mobile connection, or a
+          // keep-alive socket the server already closed) is safe to retry once.
+          final ro = error.requestOptions;
+          final noResponse = error.response == null &&
+              (error.type == DioExceptionType.connectionError ||
+                  error.type == DioExceptionType.unknown);
+          if (noResponse && ro.method == 'GET' && ro.extra['retried'] != true) {
+            ro.extra['retried'] = true;
+            try {
+              return handler.resolve(await _dio.fetch(ro));
+            } on DioException catch (e) {
+              return handler.next(e);
+            }
           }
           handler.next(error);
         },
@@ -66,8 +85,10 @@ class ApiClient {
   static String _extractReason(dynamic data) {
     if (data is Map) {
       final msg = data['message']?.toString().toLowerCase() ?? '';
-      if (msg.contains('device') || msg.contains('session') ||
-          msg.contains('another') || msg.contains('terminated')) {
+      if (msg.contains('device') ||
+          msg.contains('session') ||
+          msg.contains('another') ||
+          msg.contains('terminated')) {
         return 'Таны акаунт өөр төхөөрөмж дээр нэвтэрсэн байна. Дахин нэвтэрнэ үү.';
       }
     }
@@ -96,20 +117,15 @@ class ApiClient {
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
-  }) =>
-      _dio.get<T>(path, queryParameters: queryParameters);
+  }) => _dio.get<T>(path, queryParameters: queryParameters);
 
   Future<Response<T>> post<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
-  }) =>
-      _dio.post<T>(path, data: data, queryParameters: queryParameters);
+  }) => _dio.post<T>(path, data: data, queryParameters: queryParameters);
 
-  Future<Response<T>> patch<T>(
-    String path, {
-    dynamic data,
-  }) =>
+  Future<Response<T>> patch<T>(String path, {dynamic data}) =>
       _dio.patch<T>(path, data: data);
 
   Future<Response<T>> delete<T>(String path, {dynamic data}) =>

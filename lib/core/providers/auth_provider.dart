@@ -14,6 +14,60 @@ import '../models/user.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
+/// A user-facing error from the phone sign-in flows (already in Mongolian).
+class AuthFlowException implements Exception {
+  final String message;
+  final int? statusCode;
+  const AuthFlowException(this.message, {this.statusCode});
+  @override
+  String toString() => message;
+}
+
+/// One verify.mn SMS session, mirroring the web PhoneSession.
+class PhoneSession {
+  /// pending | verified | expired | missing
+  final String status;
+
+  /// Encrypted handle for the sign-in SMS flow.
+  final String? verification;
+
+  /// Profile verifications are addressed by id instead.
+  final int? id;
+  final String? phone;
+  final String? displayInstruction;
+  final String? smsUri;
+  final DateTime? expiresAt;
+
+  const PhoneSession({
+    required this.status,
+    this.verification,
+    this.id,
+    this.phone,
+    this.displayInstruction,
+    this.smsUri,
+    this.expiresAt,
+  });
+
+  bool get isPending => status == 'pending';
+  bool get isVerified => status == 'verified';
+  bool get isOver => status == 'expired' || status == 'missing';
+
+  factory PhoneSession.fromJson(
+    Map<String, dynamic> j, {
+    String? verification,
+  }) => PhoneSession(
+    status: j['status']?.toString() ?? 'missing',
+    verification: j['verification']?.toString() ?? verification,
+    id: j['id'] is int ? j['id'] as int : int.tryParse('${j['id']}'),
+    phone: j['phone']?.toString(),
+    displayInstruction: j['display_instruction']?.toString(),
+    smsUri: j['sms_uri']?.toString(),
+    expiresAt: j['expires_at'] != null
+        ? DateTime.tryParse(j['expires_at'].toString())
+        : null,
+  );
+}
+
 class AuthState {
   final User? user;
   final bool isInitializing;
@@ -157,7 +211,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> signInWithGoogle() async {
     state = state.clearError();
     try {
-      final googleUser = await GoogleSignIn(scopes: ['email', 'profile']).signIn();
+      final googleUser = await GoogleSignIn(
+        scopes: ['email', 'profile'],
+      ).signIn();
       if (googleUser == null) {
         state = state.copyWith(error: 'Google нэвтрэлт цуцлагдлаа.');
         return false;
@@ -167,7 +223,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(credential);
+      final fbUser = await fb.FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
       final firebaseIdToken = await fbUser.user!.getIdToken();
 
       final res = await _api.post<Map<String, dynamic>>(
@@ -221,11 +279,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // The SDK always attempts an OAuth code exchange which Apple rejects;
       // the REST API uses the identity token + nonce path correctly.
       final apiKey = Firebase.app().options.apiKey;
-      final postBody = Uri(queryParameters: {
-        'id_token': identityToken,
-        'nonce': rawNonce,
-        'providerId': 'apple.com',
-      }).query;
+      final postBody = Uri(
+        queryParameters: {
+          'id_token': identityToken,
+          'nonce': rawNonce,
+          'providerId': 'apple.com',
+        },
+      ).query;
 
       final restDio = Dio();
       final fbRes = await restDio.post<Map<String, dynamic>>(
@@ -252,9 +312,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
-        state = state.copyWith(isLoading: false, error: 'Apple нэвтрэлт цуцлагдлаа.');
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Apple нэвтрэлт цуцлагдлаа.',
+        );
       } else {
-        state = state.copyWith(isLoading: false, error: 'Apple нэвтрэлт амжилтгүй: ${e.message}');
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Apple нэвтрэлт амжилтгүй: ${e.message}',
+        );
       }
       return false;
     } on DioException catch (e) {
@@ -271,19 +337,138 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     } catch (e) {
       final s = e.toString();
-      state = state.copyWith(isLoading: false, error: s.length > 200 ? s.substring(0, 200) : s);
+      state = state.copyWith(
+        isLoading: false,
+        error: s.length > 200 ? s.substring(0, 200) : s,
+      );
       return false;
     }
   }
 
   String _generateNonce([int length = 32]) {
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    const chars =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
     final rng = Random.secure();
-    return List.generate(length, (_) => chars[rng.nextInt(chars.length)]).join();
+    return List.generate(
+      length,
+      (_) => chars[rng.nextInt(chars.length)],
+    ).join();
   }
 
-  String _sha256(String input) =>
-      sha256.convert(utf8.encode(input)).toString();
+  String _sha256(String input) => sha256.convert(utf8.encode(input)).toString();
+
+  /// Stores the token and signs the user in; the router then leaves /login.
+  Future<void> _applyLogin(
+    String token,
+    Map<String, dynamic> userJson, {
+    bool needsPassword = false,
+  }) async {
+    await _api.saveToken(token);
+    final user = User.fromJson(userJson);
+    OneSignal.login(user.id.toString());
+    state = AuthState(user: user, needsPassword: needsPassword);
+  }
+
+  AuthFlowException _flowError(DioException e) =>
+      AuthFlowException(_extractError(e), statusCode: e.response?.statusCode);
+
+  // ── Phone + PIN ────────────────────────────────────────────────────────
+
+  /// What to ask next for this number: "pin" (sign in), "create" (new account)
+  /// or "sms" (account has no PIN yet — prove the number first).
+  Future<String> checkPhone(String phone) async {
+    try {
+      final res = await _api.post<Map<String, dynamic>>(
+        ApiEndpoints.phoneCheck,
+        data: {'phone': phone},
+      );
+      return res.data!['next'].toString();
+    } on DioException catch (e) {
+      throw _flowError(e);
+    }
+  }
+
+  Future<void> loginWithPin(String phone, String pin) =>
+      _tokenCall(ApiEndpoints.phonePinLogin, {'phone': phone, 'pin': pin});
+
+  Future<void> registerWithPin(String phone, String pin) =>
+      _tokenCall(ApiEndpoints.phoneRegister, {'phone': phone, 'pin': pin});
+
+  Future<void> _tokenCall(String path, Map<String, dynamic> data) async {
+    try {
+      final res = await _api.post<Map<String, dynamic>>(path, data: data);
+      await _applyLogin(
+        res.data!['token'] as String,
+        Map<String, dynamic>.from(res.data!['user'] as Map),
+      );
+    } on DioException catch (e) {
+      throw _flowError(e);
+    }
+  }
+
+  // ── SMS (verify.mn): set a PIN on an account without one / forgot PIN ───
+
+  Future<PhoneSession> startSms(String phone) async {
+    try {
+      final res = await _api.post<Map<String, dynamic>>(
+        ApiEndpoints.phoneSms,
+        data: {'phone': phone},
+      );
+      return PhoneSession.fromJson(res.data!);
+    } on DioException catch (e) {
+      throw _flowError(e);
+    }
+  }
+
+  Future<PhoneSession> checkSms(String verification) async {
+    try {
+      final res = await _api.get<Map<String, dynamic>>(
+        ApiEndpoints.phoneSmsStatus,
+        queryParameters: {'verification': verification},
+      );
+      return PhoneSession.fromJson(res.data!, verification: verification);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return PhoneSession(status: 'missing', verification: verification);
+      }
+      throw _flowError(e);
+    }
+  }
+
+  Future<void> completeSms(String verification, String pin) => _tokenCall(
+    ApiEndpoints.phoneSmsComplete,
+    {'verification': verification, 'pin': pin},
+  );
+
+  // ── Profile: verify the account's number by SMS ────────────────────────
+
+  Future<PhoneSession> startProfileVerification(String phone) async {
+    try {
+      final res = await _api.post<Map<String, dynamic>>(
+        ApiEndpoints.profilePhoneVerification,
+        data: {'phone': phone},
+      );
+      return PhoneSession.fromJson(res.data!);
+    } on DioException catch (e) {
+      throw _flowError(e);
+    }
+  }
+
+  Future<PhoneSession> checkProfileVerification(int id) async {
+    try {
+      final res = await _api.get<Map<String, dynamic>>(
+        ApiEndpoints.profilePhoneVerificationStatus(id),
+      );
+      final s = PhoneSession.fromJson(res.data!);
+      if (s.isVerified) await refreshUser();
+      return s;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return PhoneSession(status: 'missing', id: id);
+      }
+      throw _flowError(e);
+    }
+  }
 
   Future<bool> setPassword(String password) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -298,7 +483,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: _extractError(e));
       return false;
     } catch (_) {
-      state = state.copyWith(isLoading: false, error: 'Нууц үг тохируулахад алдаа гарлаа.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Нууц үг тохируулахад алдаа гарлаа.',
+      );
       return false;
     }
   }

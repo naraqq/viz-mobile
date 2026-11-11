@@ -2,6 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_loading_screen.dart';
+import '../../features/drama/drama_detail_screen.dart';
+import '../../features/drama/drama_home_screen.dart';
+import '../../features/drama/drama_player_screen.dart';
+import '../../features/drama/dramas_screen.dart';
+import '../../features/drama/my_list_screen.dart';
+import '../../features/drama/reels_screen.dart';
+import '../../features/drama/vip_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/set_password_screen.dart';
 import '../../features/browse/browse_screen.dart';
@@ -9,7 +16,6 @@ import '../../features/genres/genre_content_screen.dart';
 import '../../features/genres/genre_list_screen.dart';
 import '../../features/update/force_update_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
-import '../../features/home/home_screen.dart';
 import '../../features/movies/movie_detail_screen.dart';
 import '../../features/player/player_screen.dart';
 import '../../features/plans/plans_screen.dart';
@@ -17,6 +23,8 @@ import '../../features/profile/about_screen.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/profile/rentals_screen.dart';
+import '../../features/profile/verify_phone_screen.dart';
+import '../../features/search/search_screen.dart';
 import '../../features/shows/show_detail_screen.dart';
 import '../../shared/widgets/viz_bottom_nav.dart';
 import '../models/season.dart';
@@ -39,7 +47,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       // Force update takes highest priority — blocks all navigation.
       if (ref.read(forceUpdateProvider)) {
-        return state.matchedLocation == '/force-update' ? null : '/force-update';
+        return state.matchedLocation == '/force-update'
+            ? null
+            : '/force-update';
       }
 
       final authState = ref.read(authProvider);
@@ -76,8 +86,40 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const DramaHomeScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/reels',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ReelsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/dramas',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              // Keyed by genre so tapping a genre in Search re-filters the tab.
+              child: DramasScreen(
+                key: ValueKey(state.uri.queryParameters['genre']),
+                initialGenre: state.uri.queryParameters['genre'],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/my-list',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const MyListScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/vip',
             pageBuilder: (context, state) =>
-                NoTransitionPage(key: state.pageKey, child: const HomeScreen()),
+                NoTransitionPage(key: state.pageKey, child: const VipScreen()),
           ),
           GoRoute(
             path: '/profile',
@@ -95,8 +137,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/notifications',
-        pageBuilder: (context, state) =>
-            CupertinoPage(key: state.pageKey, child: const NotificationsScreen()),
+        pageBuilder: (context, state) => CupertinoPage(
+          key: state.pageKey,
+          child: const NotificationsScreen(),
+        ),
       ),
       GoRoute(
         path: '/plans',
@@ -112,6 +156,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile/rentals',
         pageBuilder: (context, state) =>
             CupertinoPage(key: state.pageKey, child: const RentalsScreen()),
+      ),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SearchScreen(),
+          transitionDuration: const Duration(milliseconds: 220),
+          transitionsBuilder: (_, a, __, child) =>
+              FadeTransition(opacity: a, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/drama/:slug',
+        pageBuilder: (context, state) => CupertinoPage(
+          key: state.pageKey,
+          child: DramaDetailScreen(slug: state.pathParameters['slug']!),
+        ),
+        routes: [
+          GoRoute(
+            path: 'watch',
+            pageBuilder: (context, state) => CupertinoPage(
+              key: state.pageKey,
+              fullscreenDialog: true,
+              child: DramaPlayerScreen(
+                slug: state.pathParameters['slug']!,
+                startEpisodeId: int.tryParse(
+                  state.uri.queryParameters['ep'] ?? '',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/profile/verify-phone',
+        pageBuilder: (context, state) =>
+            CupertinoPage(key: state.pageKey, child: const VerifyPhoneScreen()),
       ),
       GoRoute(
         path: '/profile/about',
@@ -132,8 +213,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/set-password',
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const SetPasswordScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const SetPasswordScreen(),
+        ),
       ),
       GoRoute(
         path: '/auth/loading',
@@ -210,8 +293,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 class AuthRouterRefreshNotifier extends ChangeNotifier {
   AuthRouterRefreshNotifier(this._ref) {
-    _authSub = _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
-    _updateSub = _ref.listen<bool>(forceUpdateProvider, (_, __) => notifyListeners());
+    _authSub = _ref.listen<AuthState>(
+      authProvider,
+      (_, __) => notifyListeners(),
+    );
+    _updateSub = _ref.listen<bool>(
+      forceUpdateProvider,
+      (_, __) => notifyListeners(),
+    );
   }
 
   final Ref _ref;

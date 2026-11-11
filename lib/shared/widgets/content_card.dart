@@ -11,11 +11,7 @@ class ContentCard extends ConsumerWidget {
   final CatalogItem item;
   final double width;
 
-  const ContentCard({
-    super.key,
-    required this.item,
-    this.width = 110,
-  });
+  const ContentCard({super.key, required this.item, this.width = 110});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,8 +26,9 @@ class ContentCard extends ConsumerWidget {
         width: width,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final resolvedWidth =
-                constraints.maxWidth.isFinite ? constraints.maxWidth : width;
+            final resolvedWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : width;
             final posterHeight = constraints.maxHeight.isFinite
                 ? constraints.maxHeight.clamp(0.0, resolvedWidth * 1.5)
                 : resolvedWidth * 1.5;
@@ -60,7 +57,10 @@ class ContentCard extends ConsumerWidget {
                         Positioned(
                           top: 5,
                           left: 5,
-                          child: _Badge(label: 'ҮНЭГҮЙ', color: Colors.green.shade700),
+                          child: _Badge(
+                            label: 'ҮНЭГҮЙ',
+                            color: Colors.green.shade700,
+                          ),
                         )
                       else if (item.accessModel == 'rent')
                         Positioned(
@@ -81,11 +81,15 @@ class ContentCard extends ConsumerWidget {
   }
 
   Widget _placeholder() => Container(
-        color: AppTheme.surface,
-        child: const Center(
-          child: Icon(Icons.movie_outlined, color: AppTheme.textSecondary, size: 28),
-        ),
-      );
+    color: AppTheme.surface,
+    child: const Center(
+      child: Icon(
+        Icons.movie_outlined,
+        color: AppTheme.textSecondary,
+        size: 28,
+      ),
+    ),
+  );
 }
 
 class _RentBanner extends StatelessWidget {
@@ -117,7 +121,11 @@ class _RentBanner extends StatelessWidget {
             ),
             child: const Text(
               'ТҮРЭЭС',
-              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           if (priceText.isNotEmpty)
@@ -151,7 +159,10 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-            color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -209,8 +220,11 @@ class WideContentCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white60),
                         ),
-                        child: const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -246,10 +260,13 @@ class WideContentCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: AppTheme.surface,
-        child: const Center(
-          child: Icon(Icons.play_circle_outline,
-              color: AppTheme.textSecondary, size: 28),
-        ),
-      );
+    color: AppTheme.surface,
+    child: const Center(
+      child: Icon(
+        Icons.play_circle_outline,
+        color: AppTheme.textSecondary,
+        size: 28,
+      ),
+    ),
+  );
 }

@@ -26,7 +26,9 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final ok = await ref.read(authProvider.notifier).setPassword(_passCtrl.text);
+    final ok = await ref
+        .read(authProvider.notifier)
+        .setPassword(_passCtrl.text);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -125,10 +127,16 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                       TextFormField(
                         controller: _passCtrl,
                         obscureText: _obscure,
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Нууц үг',
-                          hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 15),
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF555555),
+                            fontSize: 15,
+                          ),
                           filled: true,
                           fillColor: const Color(0xFF151515),
                           prefixIcon: const Icon(
@@ -144,34 +152,47 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                               color: const Color(0xFF555555),
                               size: 20,
                             ),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2A2A2A),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2A2A2A),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF555555)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                                color: AppTheme.primary.withValues(alpha: 0.7)),
+                              color: AppTheme.primary.withValues(alpha: 0.7),
+                            ),
                           ),
                           focusedErrorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppTheme.primary),
+                            borderSide: const BorderSide(
+                              color: AppTheme.primary,
+                            ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 16),
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                         ),
-                        validator: (v) =>
-                            v == null || v.length < 8 ? 'Хамгийн багадаа 8 тэмдэгт' : null,
+                        validator: (v) => v == null || v.length < 8
+                            ? 'Хамгийн багадаа 8 тэмдэгт'
+                            : null,
                       ),
 
                       const SizedBox(height: 12),
@@ -179,10 +200,16 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                       TextFormField(
                         controller: _confirmCtrl,
                         obscureText: _obscureConfirm,
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Нууц үг давтах',
-                          hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 15),
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF555555),
+                            fontSize: 15,
+                          ),
                           filled: true,
                           fillColor: const Color(0xFF151515),
                           prefixIcon: const Icon(
@@ -198,34 +225,48 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                               color: const Color(0xFF555555),
                               size: 20,
                             ),
-                            onPressed: () =>
-                                setState(() => _obscureConfirm = !_obscureConfirm),
+                            onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2A2A2A),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2A2A2A),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF555555)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                                color: AppTheme.primary.withValues(alpha: 0.7)),
+                              color: AppTheme.primary.withValues(alpha: 0.7),
+                            ),
                           ),
                           focusedErrorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppTheme.primary),
+                            borderSide: const BorderSide(
+                              color: AppTheme.primary,
+                            ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 16),
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                         ),
-                        validator: (v) => v != _passCtrl.text ? 'Нууц үг таарахгүй байна' : null,
+                        validator: (v) => v != _passCtrl.text
+                            ? 'Нууц үг таарахгүй байна'
+                            : null,
                       ),
 
                       const SizedBox(height: 24),
@@ -237,8 +278,8 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                AppTheme.primary.withValues(alpha: 0.4),
+                            disabledBackgroundColor: AppTheme.primary
+                                .withValues(alpha: 0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

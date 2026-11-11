@@ -18,14 +18,14 @@ class NotificationItem {
   });
 
   NotificationItem copyWith({bool? isRead}) => NotificationItem(
-        id: id,
-        title: title,
-        body: body,
-        imageUrl: imageUrl,
-        link: link,
-        isRead: isRead ?? this.isRead,
-        createdAt: createdAt,
-      );
+    id: id,
+    title: title,
+    body: body,
+    imageUrl: imageUrl,
+    link: link,
+    isRead: isRead ?? this.isRead,
+    createdAt: createdAt,
+  );
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) =>
       NotificationItem(

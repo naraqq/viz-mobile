@@ -27,7 +27,11 @@ class MovieDetailScreen extends ConsumerStatefulWidget {
 class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
   bool _checkingAccess = false;
 
-  Future<void> _launchPlayer(Map<String, dynamic> playerArgs, {bool isFree = false, String accessModel = ''}) async {
+  Future<void> _launchPlayer(
+    Map<String, dynamic> playerArgs, {
+    bool isFree = false,
+    String accessModel = '',
+  }) async {
     setState(() => _checkingAccess = true);
     try {
       final ok = await verifyPlayAccess(
@@ -88,7 +92,8 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.invalidate(movieDetailProvider(widget.slug)),
+                  onPressed: () =>
+                      ref.invalidate(movieDetailProvider(widget.slug)),
                   child: const Text('Дахин оролдох'),
                 ),
               ],
@@ -97,10 +102,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
         ),
         data: (detail) {
           final movie = detail.movie;
-          final canPlay =
-              detail.canWatch ||
-              detail.hasRental ||
-              movie.isFree;
+          final canPlay = detail.canWatch || detail.hasRental || movie.isFree;
           final series = detail.series;
           final featuredEpisode = series != null
               ? _findResumeEpisode(series.seasons, detail.episodeProgress) ??
@@ -267,18 +269,23 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                             ? null
                             : () => _launchPlayer(
                                 {
-                                  'hlsUrl': featuredEpisode.streamVideo!.hlsUrl ?? '',
+                                  'hlsUrl':
+                                      featuredEpisode.streamVideo!.hlsUrl ?? '',
                                   'title':
                                       '${movie.title} · S${featuredSeason.seasonNumber}E${featuredEpisode.episodeNumber}',
                                   'seriesTitle': movie.title,
                                   'watchableType': 'episode',
                                   'watchableId': featuredEpisode.id,
                                   'currentEpisodeId': featuredEpisode.id,
-                                  'currentSeasonNumber': featuredSeason.seasonNumber,
+                                  'currentSeasonNumber':
+                                      featuredSeason.seasonNumber,
                                   'startPosition':
-                                      detail.episodeProgress[featuredEpisode.id] ?? 0,
-                                  'subtitleTracks':
-                                      featuredEpisode.streamVideo!.subtitleTracks,
+                                      detail.episodeProgress[featuredEpisode
+                                          .id] ??
+                                      0,
+                                  'subtitleTracks': featuredEpisode
+                                      .streamVideo!
+                                      .subtitleTracks,
                                   'seasons': series!.seasons,
                                   'episodeProgress': detail.episodeProgress,
                                 },
@@ -315,7 +322,8 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                                   'watchableType': 'movie',
                                   'watchableId': movie.id,
                                   'startPosition': detail.movieProgress ?? 0,
-                                  'subtitleTracks': movie.streamVideo!.subtitleTracks,
+                                  'subtitleTracks':
+                                      movie.streamVideo!.subtitleTracks,
                                 },
                                 isFree: movie.isFree,
                                 accessModel: movie.accessModel,

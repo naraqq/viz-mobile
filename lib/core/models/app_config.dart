@@ -10,10 +10,10 @@ class AppConfig {
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) => AppConfig(
-        reviewMode: json['review_mode'] as bool? ?? false,
-        minVersion: json['min_version'] as String? ?? '1.0.0',
-        storeUrl: json['store_url'] as String?,
-      );
+    reviewMode: json['review_mode'] as bool? ?? false,
+    minVersion: json['min_version'] as String? ?? '1.0.0',
+    storeUrl: json['store_url'] as String?,
+  );
 
   static const empty = AppConfig(reviewMode: false, minVersion: '1.0.0');
 }

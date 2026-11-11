@@ -31,10 +31,8 @@ class ContentRowWidget extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: row.items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) => ContentCard(
-              item: row.items[index],
-              width: 120,
-            ),
+            itemBuilder: (context, index) =>
+                ContentCard(item: row.items[index], width: 120),
           ),
         ),
       ],
@@ -110,10 +108,13 @@ class ContinueWatchingCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: AppTheme.surface,
-        child: const Center(
-          child: Icon(Icons.play_circle_outline,
-              color: AppTheme.textSecondary, size: 32),
-        ),
-      );
+    color: AppTheme.surface,
+    child: const Center(
+      child: Icon(
+        Icons.play_circle_outline,
+        color: AppTheme.textSecondary,
+        size: 32,
+      ),
+    ),
+  );
 }

@@ -19,8 +19,9 @@ Future<bool> verifyPlayAccess({
   String accessModel = '',
 }) async {
   final api = ref.read(apiClientProvider);
-  final endpoint =
-      isMovie ? ApiEndpoints.movieDetail(slug) : ApiEndpoints.showDetail(slug);
+  final endpoint = isMovie
+      ? ApiEndpoints.movieDetail(slug)
+      : ApiEndpoints.showDetail(slug);
 
   try {
     final results = await Future.wait<dynamic>([
@@ -28,8 +29,7 @@ Future<bool> verifyPlayAccess({
       api.get<Map<String, dynamic>>(endpoint),
     ]);
 
-    final data =
-        (results[1] as dynamic).data as Map<String, dynamic>;
+    final data = (results[1] as dynamic).data as Map<String, dynamic>;
     final canWatch = readBool(data['can_watch']);
     final hasRental = readBool(data['has_rental']);
 
@@ -39,7 +39,8 @@ Future<bool> verifyPlayAccess({
     // connection doesn't lock out a legitimate subscriber.
     // Rental content requires an actual rental even offline.
     final user = ref.read(authProvider).user;
-    return isFree || (accessModel != 'rent' && user?.hasActiveSubscription == true);
+    return isFree ||
+        (accessModel != 'rent' && user?.hasActiveSubscription == true);
   }
 }
 

@@ -16,10 +16,10 @@ class SubtitleTrack {
   });
 
   factory SubtitleTrack.fromJson(Map<String, dynamic> json) => SubtitleTrack(
-        id: readInt(json['id']) ?? 0,
-        languageCode: json['language_code'] as String,
-        label: json['label'] as String,
-        playbackUrl: json['playback_url'] as String?,
-        isDefault: readBool(json['is_default']),
-      );
+    id: readInt(json['id']) ?? 0,
+    languageCode: json['language_code'] as String,
+    label: json['label'] as String,
+    playbackUrl: json['playback_url'] as String?,
+    isDefault: readBool(json['is_default']),
+  );
 }

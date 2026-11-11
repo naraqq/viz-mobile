@@ -41,8 +41,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '325764829403',
     projectId: 'screenx-ee8de',
     storageBucket: 'screenx-ee8de.firebasestorage.app',
-    iosClientId: '325764829403-50sjtt6i94b1pscregpsss1hp8itpl01.apps.googleusercontent.com',
+    iosClientId:
+        '325764829403-50sjtt6i94b1pscregpsss1hp8itpl01.apps.googleusercontent.com',
     iosBundleId: 'com.vizapp.vizFlutter',
   );
-
 }

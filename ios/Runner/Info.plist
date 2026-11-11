@@ -9,7 +9,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>monfilm</string>
+		<string>Lemony</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -17,7 +17,7 @@
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>CFBundleName</key>
-		<string>monfilm</string>
+		<string>Lemony</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -56,41 +56,42 @@
 		<key>UIMainStoryboardFile</key>
 		<string>Main</string>
 		<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.325764829403-50sjtt6i94b1pscregpsss1hp8itpl01</string>
-			</array>
-		</dict>
-	</array>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>khanbank</string>
-		<string>golomt</string>
-		<string>tdb</string>
-		<string>statebank</string>
-		<string>capitronbank</string>
-		<string>xacbank</string>
-		<string>ubcbank</string>
-		<string>mbank</string>
-		<string>monpay</string>
-		<string>qpay</string>
-		<string>ardapp</string>
-		<string>socialpay</string>
-		<string>lend</string>
-		<string>bogdbank</string>
-		<string>nibank</string>
-	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app does not use your location. This permission is requested by a third-party SDK.</string>
-	<key>UIStatusBarHidden</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.325764829403-50sjtt6i94b1pscregpsss1hp8itpl01</string>
+				</array>
+			</dict>
+		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>sms</string>
+			<string>khanbank</string>
+			<string>golomt</string>
+			<string>tdb</string>
+			<string>statebank</string>
+			<string>capitronbank</string>
+			<string>xacbank</string>
+			<string>ubcbank</string>
+			<string>mbank</string>
+			<string>monpay</string>
+			<string>qpay</string>
+			<string>ardapp</string>
+			<string>socialpay</string>
+			<string>lend</string>
+			<string>bogdbank</string>
+			<string>nibank</string>
+		</array>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>This app does not use your location. This permission is requested by a third-party SDK.</string>
+		<key>UIStatusBarHidden</key>
 		<false/>
 		<key>UISupportedInterfaceOrientations</key>
 		<array>

@@ -23,14 +23,14 @@ class StreamVideo {
   bool get isReady => status == 'ready' || hlsUrl != null;
 
   factory StreamVideo.fromJson(Map<String, dynamic> json) => StreamVideo(
-        id: readInt(json['id']) ?? 0,
-        hlsUrl: json['hls_url'] as String?,
-        playbackUrl: json['playback_url'] as String?,
-        thumbnailUrl: json['thumbnail_url'] as String?,
-        durationSeconds: readInt(json['duration_seconds']),
-        status: json['status'] as String? ?? 'draft',
-        subtitleTracks: (json['subtitle_tracks'] as List<dynamic>? ?? [])
-            .map((t) => SubtitleTrack.fromJson(t as Map<String, dynamic>))
-            .toList(),
-      );
+    id: readInt(json['id']) ?? 0,
+    hlsUrl: json['hls_url'] as String?,
+    playbackUrl: json['playback_url'] as String?,
+    thumbnailUrl: json['thumbnail_url'] as String?,
+    durationSeconds: readInt(json['duration_seconds']),
+    status: json['status'] as String? ?? 'draft',
+    subtitleTracks: (json['subtitle_tracks'] as List<dynamic>? ?? [])
+        .map((t) => SubtitleTrack.fromJson(t as Map<String, dynamic>))
+        .toList(),
+  );
 }

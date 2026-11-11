@@ -42,9 +42,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   void _onSearchChanged(String value) {
     setState(() {});
     final q = value.trim();
-    ref.read(browseProvider.notifier).applyFilters(
-      BrowseFilters(search: q.isEmpty ? null : q),
-    );
+    ref
+        .read(browseProvider.notifier)
+        .applyFilters(BrowseFilters(search: q.isEmpty ? null : q));
   }
 
   void _clearSearch() {
@@ -59,8 +59,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.background,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         titleSpacing: 0,
@@ -184,10 +187,7 @@ class _ResultsView extends ConsumerWidget {
                 SizedBox(height: 12),
                 Text(
                   'Илэрц олдсонгүй',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
                 ),
               ],
             ),
@@ -218,18 +218,15 @@ class _ResultsView extends ConsumerWidget {
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    if (i >= data.items.length) {
-                      return const ShimmerBox(borderRadius: BorderRadius.zero);
-                    }
-                    return ContentCard(
-                      item: data.items[i],
-                      width: double.infinity,
-                    );
-                  },
-                  childCount: data.items.length + (data.hasMore ? 3 : 0),
-                ),
+                delegate: SliverChildBuilderDelegate((_, i) {
+                  if (i >= data.items.length) {
+                    return const ShimmerBox(borderRadius: BorderRadius.zero);
+                  }
+                  return ContentCard(
+                    item: data.items[i],
+                    width: double.infinity,
+                  );
+                }, childCount: data.items.length + (data.hasMore ? 3 : 0)),
               ),
             ),
           ],

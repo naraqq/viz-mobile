@@ -12,7 +12,8 @@ class GenreContentNotifier extends StateNotifier<AsyncValue<BrowseData>> {
   int _lastPage = 1;
   int _requestId = 0;
 
-  GenreContentNotifier(this._ref, this._genre) : super(const AsyncValue.loading()) {
+  GenreContentNotifier(this._ref, this._genre)
+    : super(const AsyncValue.loading()) {
     _load(replace: true, requestId: ++_requestId);
   }
 
@@ -25,13 +26,15 @@ class GenreContentNotifier extends StateNotifier<AsyncValue<BrowseData>> {
   Future<void> loadMore() async {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.isLoadingMore) return;
-    state = AsyncValue.data(BrowseData(
-      items: current.items,
-      currentPage: current.currentPage,
-      lastPage: current.lastPage,
-      total: current.total,
-      isLoadingMore: true,
-    ));
+    state = AsyncValue.data(
+      BrowseData(
+        items: current.items,
+        currentPage: current.currentPage,
+        lastPage: current.lastPage,
+        total: current.total,
+        isLoadingMore: true,
+      ),
+    );
     _page = current.currentPage + 1;
     await _load(replace: false, requestId: ++_requestId);
   }
@@ -55,13 +58,17 @@ class GenreContentNotifier extends StateNotifier<AsyncValue<BrowseData>> {
       _lastPage = readInt(meta['last_page']) ?? 1;
       final total = readInt(meta['total']) ?? 0;
 
-      final existing = replace ? <CatalogItem>[] : (state.valueOrNull?.items ?? []);
-      state = AsyncValue.data(BrowseData(
-        items: [...existing, ...items],
-        currentPage: _page,
-        lastPage: _lastPage,
-        total: total,
-      ));
+      final existing = replace
+          ? <CatalogItem>[]
+          : (state.valueOrNull?.items ?? []);
+      state = AsyncValue.data(
+        BrowseData(
+          items: [...existing, ...items],
+          currentPage: _page,
+          lastPage: _lastPage,
+          total: total,
+        ),
+      );
     } catch (e, st) {
       if (requestId != _requestId) return;
       state = AsyncValue.error(e, st);
@@ -69,7 +76,9 @@ class GenreContentNotifier extends StateNotifier<AsyncValue<BrowseData>> {
   }
 }
 
-final genreContentProvider = StateNotifierProvider.family<
-    GenreContentNotifier, AsyncValue<BrowseData>, String>(
-  (ref, slug) => GenreContentNotifier(ref, slug),
-);
+final genreContentProvider =
+    StateNotifierProvider.family<
+      GenreContentNotifier,
+      AsyncValue<BrowseData>,
+      String
+    >((ref, slug) => GenreContentNotifier(ref, slug));
