@@ -7,11 +7,12 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/loading_shimmer.dart';
 
-final _rentalsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final _rentalsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final api = ref.read(apiClientProvider);
   final res = await api.get<Map<String, dynamic>>(ApiEndpoints.rentals);
-  return (res.data!['rentals'] as List<dynamic>)
-      .cast<Map<String, dynamic>>();
+  return (res.data!['rentals'] as List<dynamic>).cast<Map<String, dynamic>>();
 });
 
 class RentalsScreen extends ConsumerWidget {
@@ -26,10 +27,17 @@ class RentalsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Миний түрээс', style: TextStyle(color: Colors.white, fontSize: 17)),
+        title: const Text(
+          'Миний түрээс',
+          style: TextStyle(color: Colors.white, fontSize: 17),
+        ),
       ),
       body: rentalsAsync.when(
         loading: () => ListView.separated(
@@ -39,8 +47,10 @@ class RentalsScreen extends ConsumerWidget {
           itemBuilder: (_, __) => const ShimmerBox(height: 90),
         ),
         error: (_, __) => const Center(
-          child: Text('Түрээсийн мэдээлэл авахад алдаа гарлаа',
-              style: TextStyle(color: AppTheme.textSecondary)),
+          child: Text(
+            'Түрээсийн мэдээлэл авахад алдаа гарлаа',
+            style: TextStyle(color: AppTheme.textSecondary),
+          ),
         ),
         data: (rentals) => rentals.isEmpty
             ? _Empty()
@@ -62,13 +72,25 @@ class _Empty extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.video_library_outlined, color: AppTheme.textSecondary, size: 52),
+          const Icon(
+            Icons.video_library_outlined,
+            color: AppTheme.textSecondary,
+            size: 52,
+          ),
           const SizedBox(height: 16),
-          const Text('Түрээсэлсэн үзвэр байхгүй байна',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            'Түрээсэлсэн үзвэр байхгүй байна',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Түрээс идэвхжсэнээс хойш 72 цаг хүчинтэй.',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          const Text(
+            'Түрээс идэвхжсэнээс хойш 72 цаг хүчинтэй.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -95,8 +117,8 @@ class _RentalTile extends StatelessWidget {
       onTap: slug == null || isExpired
           ? null
           : () => type == 'movie'
-              ? context.push('/movies/$slug')
-              : context.push('/shows/$slug'),
+                ? context.push('/movies/$slug')
+                : context.push('/shows/$slug'),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1C1C1C),
@@ -106,7 +128,9 @@ class _RentalTile extends StatelessWidget {
           children: [
             // Poster
             ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(10),
+              ),
               child: SizedBox(
                 width: 64,
                 height: 90,
@@ -132,7 +156,11 @@ class _RentalTile extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     if (expiry != null)
@@ -141,7 +169,9 @@ class _RentalTile extends StatelessWidget {
                             ? 'Хугацаа дууссан'
                             : 'Дуусах: ${_format(expiry)}',
                         style: TextStyle(
-                          color: isExpired ? AppTheme.primary : AppTheme.textSecondary,
+                          color: isExpired
+                              ? AppTheme.primary
+                              : AppTheme.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -152,7 +182,11 @@ class _RentalTile extends StatelessWidget {
             if (!isExpired)
               const Padding(
                 padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.play_circle_outline_rounded, color: AppTheme.textSecondary, size: 24),
+                child: Icon(
+                  Icons.play_circle_outline_rounded,
+                  color: AppTheme.textSecondary,
+                  size: 24,
+                ),
               ),
           ],
         ),
@@ -161,9 +195,9 @@ class _RentalTile extends StatelessWidget {
   }
 
   Widget _posterPlaceholder() => Container(
-        color: AppTheme.surface,
-        child: const Icon(Icons.movie_outlined, color: AppTheme.textSecondary),
-      );
+    color: AppTheme.surface,
+    child: const Icon(Icons.movie_outlined, color: AppTheme.textSecondary),
+  );
 
   String _format(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';

@@ -19,27 +19,27 @@ class NotificationsState {
     List<NotificationItem>? items,
     int? unreadCount,
     bool? isLoading,
-  }) =>
-      NotificationsState(
-        items: items ?? this.items,
-        unreadCount: unreadCount ?? this.unreadCount,
-        isLoading: isLoading ?? this.isLoading,
-      );
+  }) => NotificationsState(
+    items: items ?? this.items,
+    unreadCount: unreadCount ?? this.unreadCount,
+    isLoading: isLoading ?? this.isLoading,
+  );
 }
 
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
   final ApiClient _api;
 
   NotificationsNotifier(this._api, {bool skipFetch = false})
-      : super(const NotificationsState()) {
+    : super(const NotificationsState()) {
     if (!skipFetch) fetch();
   }
 
   Future<void> fetch() async {
     state = state.copyWith(isLoading: true);
     try {
-      final res =
-          await _api.get<Map<String, dynamic>>(ApiEndpoints.notifications);
+      final res = await _api.get<Map<String, dynamic>>(
+        ApiEndpoints.notifications,
+      );
       final data = res.data!;
       final items = (data['data'] as List)
           .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
@@ -73,7 +73,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
-  final isAuth = ref.watch(authProvider).isAuthenticated;
-  final api = ref.watch(apiClientProvider);
-  return NotificationsNotifier(api, skipFetch: !isAuth);
-});
+      final isAuth = ref.watch(authProvider).isAuthenticated;
+      final api = ref.watch(apiClientProvider);
+      return NotificationsNotifier(api, skipFetch: !isAuth);
+    });

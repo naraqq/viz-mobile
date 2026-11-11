@@ -28,7 +28,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final ok = await ref.read(authProvider.notifier).register(
+    final ok = await ref
+        .read(authProvider.notifier)
+        .register(
           _nameCtrl.text.trim(),
           _emailCtrl.text.trim(),
           _passCtrl.text,
@@ -92,8 +94,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'Овог нэр',
-                      prefixIcon: Icon(Icons.person_outline,
-                          color: AppTheme.textSecondary),
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     validator: (v) =>
                         v == null || v.isEmpty ? 'Нэрээ оруулна уу' : null,
@@ -105,8 +109,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'И-мэйл',
-                      prefixIcon: Icon(Icons.email_outlined,
-                          color: AppTheme.textSecondary),
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     validator: (v) => v == null || !v.contains('@')
                         ? 'Зөв и-мэйл оруулна уу'
@@ -119,8 +125,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Нууц үг',
-                      prefixIcon: const Icon(Icons.lock_outline,
-                          color: AppTheme.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppTheme.textSecondary,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscure
@@ -143,7 +151,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Бүртгүүлэх'),
                   ),
@@ -151,14 +161,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Бүртгэлтэй юу? ',
-                          style: TextStyle(color: AppTheme.textSecondary)),
+                      const Text(
+                        'Бүртгэлтэй юу? ',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
                       GestureDetector(
                         onTap: () => context.go('/login'),
-                        child: const Text('Нэвтрэх',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Нэвтрэх',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),

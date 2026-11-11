@@ -132,18 +132,15 @@ class _GenreContentScreenState extends ConsumerState<GenreContentScreen> {
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) {
-                      if (i >= data.items.length) {
-                        return const ShimmerBox(borderRadius: BorderRadius.zero);
-                      }
-                      return ContentCard(
-                        item: data.items[i],
-                        width: double.infinity,
-                      );
-                    },
-                    childCount: data.items.length + (data.hasMore ? 3 : 0),
-                  ),
+                  delegate: SliverChildBuilderDelegate((_, i) {
+                    if (i >= data.items.length) {
+                      return const ShimmerBox(borderRadius: BorderRadius.zero);
+                    }
+                    return ContentCard(
+                      item: data.items[i],
+                      width: double.infinity,
+                    );
+                  }, childCount: data.items.length + (data.hasMore ? 3 : 0)),
                 ),
               ),
             ],

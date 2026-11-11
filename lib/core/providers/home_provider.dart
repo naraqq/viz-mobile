@@ -22,20 +22,18 @@ final homeProvider = FutureProvider<HomeData>((ref) async {
   final res = await api.get<Map<String, dynamic>>(ApiEndpoints.home);
   final data = res.data!;
 
-  final featuredItems =
-      (data['featured_items'] as List<dynamic>? ?? [])
-          .map((i) => CatalogItem.fromJson(i as Map<String, dynamic>))
-          .toList();
+  final featuredItems = (data['featured_items'] as List<dynamic>? ?? [])
+      .map((i) => CatalogItem.fromJson(i as Map<String, dynamic>))
+      .toList();
 
   final rawRows = data['rows'] as List<dynamic>? ?? [];
   final rows = rawRows
       .map((r) => ContentRow.fromJson(r as Map<String, dynamic>))
       .toList();
 
-  final continueWatching =
-      (data['continue_watching'] as List<dynamic>? ?? [])
-          .map((c) => ContinueWatchingItem.fromJson(c as Map<String, dynamic>))
-          .toList();
+  final continueWatching = (data['continue_watching'] as List<dynamic>? ?? [])
+      .map((c) => ContinueWatchingItem.fromJson(c as Map<String, dynamic>))
+      .toList();
 
   return HomeData(
     featuredItems: featuredItems,

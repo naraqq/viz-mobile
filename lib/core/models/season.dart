@@ -17,12 +17,14 @@ class Season {
   });
 
   factory Season.fromJson(Map<String, dynamic> json) => Season(
-        id: readInt(json['id']) ?? 0,
-        seasonNumber: readInt(json['season_number']) ?? 0,
-        name: json['name'] as String? ?? '${readInt(json['season_number']) ?? 0}-р бүлэг',
-        posterUrl: json['poster_url'] as String?,
-        episodes: (json['episodes'] as List<dynamic>? ?? [])
-            .map((e) => Episode.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    id: readInt(json['id']) ?? 0,
+    seasonNumber: readInt(json['season_number']) ?? 0,
+    name:
+        json['name'] as String? ??
+        '${readInt(json['season_number']) ?? 0}-р бүлэг',
+    posterUrl: json['poster_url'] as String?,
+    episodes: (json['episodes'] as List<dynamic>? ?? [])
+        .map((e) => Episode.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 }

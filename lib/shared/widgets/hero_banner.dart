@@ -57,8 +57,10 @@ class _HeroBannerState extends State<HeroBanner> {
           height: bannerH,
           child: PageView.builder(
             controller: _pageCtrl,
-            onPageChanged: (i) => setState(() => _currentPage = i % widget.items.length),
-            itemBuilder: (_, i) => _HeroPage(item: widget.items[i % widget.items.length]),
+            onPageChanged: (i) =>
+                setState(() => _currentPage = i % widget.items.length),
+            itemBuilder: (_, i) =>
+                _HeroPage(item: widget.items[i % widget.items.length]),
           ),
         ),
         if (widget.items.length > 1) ...[
@@ -106,10 +108,7 @@ class _HeroPage extends StatelessWidget {
               fadeInDuration: const Duration(milliseconds: 300),
             )
           else if (item.posterUrl != null)
-            CachedNetworkImage(
-              imageUrl: item.posterUrl!,
-              fit: BoxFit.cover,
-            )
+            CachedNetworkImage(imageUrl: item.posterUrl!, fit: BoxFit.cover)
           else
             Container(color: AppTheme.surface),
 
@@ -232,8 +231,7 @@ class _HeroButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                color: filled ? Colors.black : Colors.white, size: 18),
+            Icon(icon, color: filled ? Colors.black : Colors.white, size: 18),
             const SizedBox(width: 6),
             Text(
               label,

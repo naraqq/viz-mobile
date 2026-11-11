@@ -13,8 +13,9 @@ enum _Stage { creating, qr, paid, error }
 class QPaySheet extends ConsumerStatefulWidget {
   final double amount;
   final String description;
-  final String invoiceType; // 'subscription' or 'rental'
+  final String invoiceType; // 'subscription', 'rental' or 'coins'
   final int? planId;
+  final int? coinPackageId;
   final String? rentableType;
   final int? rentableId;
   final int rentalDurationHours;
@@ -26,6 +27,7 @@ class QPaySheet extends ConsumerStatefulWidget {
     required this.description,
     required this.invoiceType,
     this.planId,
+    this.coinPackageId,
     this.rentableType,
     this.rentableId,
     this.rentalDurationHours = 72,
@@ -41,6 +43,7 @@ class QPaySheet extends ConsumerStatefulWidget {
     required String description,
     required String invoiceType,
     int? planId,
+    int? coinPackageId,
     String? rentableType,
     int? rentableId,
     int rentalDurationHours = 72,
@@ -57,6 +60,7 @@ class QPaySheet extends ConsumerStatefulWidget {
         description: description,
         invoiceType: invoiceType,
         planId: planId,
+        coinPackageId: coinPackageId,
         rentableType: rentableType,
         rentableId: rentableId,
         rentalDurationHours: rentalDurationHours,
@@ -106,6 +110,8 @@ class _QPaySheetState extends ConsumerState<QPaySheet>
           'amount': widget.amount,
           'invoice_type': widget.invoiceType,
           if (widget.planId != null) 'plan_id': widget.planId,
+          if (widget.coinPackageId != null)
+            'coin_package_id': widget.coinPackageId,
           if (widget.rentableType != null) 'rentable_type': widget.rentableType,
           if (widget.rentableId != null) 'rentable_id': widget.rentableId,
           'rental_duration_hours': widget.rentalDurationHours,
@@ -621,7 +627,10 @@ class _BankAppTile extends StatelessWidget {
         final uri = Uri.tryParse(bank.link);
         if (uri == null) return;
         try {
-          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          final launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
           if (!launched && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('${bank.name} апп суулгаагүй байна.')),

@@ -32,8 +32,7 @@ void main() async {
   OneSignal.initialize(_oneSignalAppId);
   OneSignal.Notifications.requestPermission(true);
   OneSignal.Notifications.addClickListener((event) {
-    final deepLink =
-        event.notification.additionalData?['deep_link'] as String?;
+    final deepLink = event.notification.additionalData?['deep_link'] as String?;
     if (deepLink == null || !deepLink.startsWith('/')) return;
 
     final ctx = rootNavigatorKey.currentContext;

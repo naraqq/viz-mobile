@@ -77,10 +77,7 @@ class _GenreTile extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white38,
-      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white38),
       onTap: () => context.push(
         Uri(
           path: '/genres/${genre.slug}',

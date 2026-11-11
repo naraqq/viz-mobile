@@ -53,12 +53,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onRefresh: () => ref.refresh(homeProvider.future),
           child: Builder(
             builder: (context) {
-              final featuredItems =
-                  home.featuredItems.where(_matchesCatalogMode).toList();
-              final continueWatching =
-                  home.continueWatching.where(_matchesContinueWatchingMode).toList();
+              final featuredItems = home.featuredItems
+                  .where(_matchesCatalogMode)
+                  .toList();
+              final continueWatching = home.continueWatching
+                  .where(_matchesContinueWatchingMode)
+                  .toList();
               final rows = _filteredRows(home.rows);
-              final hasContent = featuredItems.isNotEmpty ||
+              final hasContent =
+                  featuredItems.isNotEmpty ||
                   continueWatching.isNotEmpty ||
                   rows.isNotEmpty;
 
@@ -81,7 +84,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   slivers: [
                     // ── Hero banner ──────────────────────────────────────────
                     if (featuredItems.isNotEmpty)
-                      SliverToBoxAdapter(child: HeroBanner(items: featuredItems))
+                      SliverToBoxAdapter(
+                        child: HeroBanner(items: featuredItems),
+                      )
                     else
                       SliverToBoxAdapter(
                         child: SizedBox(
@@ -107,7 +112,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             itemBuilder: (context, i) {
                               final item = continueWatching[i];
                               final user = ref.read(authProvider).user;
-                              final hasAccess = item.isFree ||
+                              final hasAccess =
+                                  item.isFree ||
                                   (item.requiresSub &&
                                       (user?.hasActiveSubscription == true)) ||
                                   (item.isRental && item.rentalActive);
@@ -160,10 +166,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   bool _matchesCatalogMode(CatalogItem item) => switch (_mode) {
-        _HomeMode.all => true,
-        _HomeMode.movies => item.isMovie,
-        _HomeMode.shows => item.isShow,
-      };
+    _HomeMode.all => true,
+    _HomeMode.movies => item.isMovie,
+    _HomeMode.shows => item.isShow,
+  };
 
   bool _matchesContinueWatchingMode(ContinueWatchingItem item) =>
       switch (_mode) {
@@ -174,10 +180,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   List<ContentRow> _filteredRows(List<ContentRow> rows) {
     return rows
-        .map((row) => ContentRow(
-              label: row.label,
-              items: row.items.where(_matchesCatalogMode).toList(),
-            ))
+        .map(
+          (row) => ContentRow(
+            label: row.label,
+            items: row.items.where(_matchesCatalogMode).toList(),
+          ),
+        )
         .where((row) => row.items.isNotEmpty)
         .toList();
   }
@@ -185,7 +193,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 // ─── App bar ──────────────────────────────────────────────────────────────────
 
-class _HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
+class _HomeAppBar extends ConsumerStatefulWidget
+    implements PreferredSizeWidget {
   final _HomeMode mode;
   final ValueChanged<_HomeMode> onModeChanged;
   final VoidCallback onCategoryTap;
@@ -215,8 +224,9 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
       Rect.fromPoints(
         chipBox.localToGlobal(Offset.zero, ancestor: overlay),
         chipBox.localToGlobal(
-            chipBox.size.bottomRight(Offset.zero),
-            ancestor: overlay),
+          chipBox.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -226,16 +236,22 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
       position: position,
       color: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      constraints: const BoxConstraints(minWidth: 200, maxWidth: 240, maxHeight: 280),
+      constraints: const BoxConstraints(
+        minWidth: 200,
+        maxWidth: 240,
+        maxHeight: 280,
+      ),
       items: widget.genres
-          .map((g) => PopupMenuItem<String>(
-                value: g.slug,
-                height: 40,
-                child: Text(
-                  g.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ))
+          .map(
+            (g) => PopupMenuItem<String>(
+              value: g.slug,
+              height: 40,
+              child: Text(
+                g.name,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          )
           .toList(),
     ).then((slug) {
       if (slug == null || !mounted) return;
@@ -308,13 +324,17 @@ class _HomeAppBarState extends ConsumerState<_HomeAppBar> {
                                 right: 2,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 1),
+                                    horizontal: 4,
+                                    vertical: 1,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppTheme.primary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   constraints: const BoxConstraints(
-                                      minWidth: 16, minHeight: 16),
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
                                   child: Text(
                                     widget.unreadCount > 99
                                         ? '99+'
@@ -409,40 +429,46 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutBack,
         child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        height: 32,
-        padding: EdgeInsets.symmetric(
-          horizontal: icon != null ? 10 : 13,
-          vertical: 0,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.black.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? Colors.white : Colors.white38,
-            width: 0.8,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          height: 32,
+          padding: EdgeInsets.symmetric(
+            horizontal: icon != null ? 10 : 13,
+            vertical: 0,
+          ),
+          decoration: BoxDecoration(
+            color: selected
+                ? Colors.white
+                : Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? Colors.white : Colors.white38,
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.black : Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+              if (icon != null) ...[
+                const SizedBox(width: 2),
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? Colors.black : Colors.white,
+                ),
+              ],
+            ],
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.black : Colors.white,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                height: 1,
-              ),
-            ),
-            if (icon != null) ...[
-              const SizedBox(width: 2),
-              Icon(icon, size: 16, color: selected ? Colors.black : Colors.white),
-            ],
-          ],
-        ),
-      ),
       ),
     );
   }
@@ -486,8 +512,11 @@ class _EmptyModeState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.movie_filter_outlined,
-                color: AppTheme.textSecondary, size: 48),
+            const Icon(
+              Icons.movie_filter_outlined,
+              color: AppTheme.textSecondary,
+              size: 48,
+            ),
             const SizedBox(height: 14),
             Text(
               label,
@@ -544,11 +573,16 @@ class _HomeError extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.wifi_off_rounded,
-              color: AppTheme.textSecondary, size: 52),
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: AppTheme.textSecondary,
+            size: 52,
+          ),
           const SizedBox(height: 16),
-          const Text('Контент ачаалж чадсангүй',
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text(
+            'Контент ачаалж чадсангүй',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
           const SizedBox(height: 6),
           const Text(
             'Интернэт холболтоо шалгаад дахин оролдоно уу',
@@ -585,16 +619,16 @@ enum _HomeMode {
   shows;
 
   String? get queryValue => switch (this) {
-        _HomeMode.all => null,
-        _HomeMode.movies => 'movie',
-        _HomeMode.shows => 'show',
-      };
+    _HomeMode.all => null,
+    _HomeMode.movies => 'movie',
+    _HomeMode.shows => 'show',
+  };
 
   String get emptyLabel => switch (this) {
-        _HomeMode.all => 'Одоогоор контент алга',
-        _HomeMode.movies => 'Одоогоор кино алга',
-        _HomeMode.shows => 'Одоогоор цуврал алга',
-      };
+    _HomeMode.all => 'Одоогоор контент алга',
+    _HomeMode.movies => 'Одоогоор кино алга',
+    _HomeMode.shows => 'Одоогоор цуврал алга',
+  };
 }
 
 String _browseLocation({_HomeMode mode = _HomeMode.all}) {

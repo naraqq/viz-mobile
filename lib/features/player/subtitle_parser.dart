@@ -3,7 +3,11 @@ class SubtitleCue {
   final Duration end;
   final String text;
 
-  const SubtitleCue({required this.start, required this.end, required this.text});
+  const SubtitleCue({
+    required this.start,
+    required this.end,
+    required this.text,
+  });
 }
 
 class SubtitleParser {
@@ -91,6 +95,8 @@ class SubtitleParser {
     }
   }
 
-  static String _stripTags(String s) =>
-      s.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll(RegExp(r'\{[^}]*\}'), '').trim();
+  static String _stripTags(String s) => s
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .replaceAll(RegExp(r'\{[^}]*\}'), '')
+      .trim();
 }

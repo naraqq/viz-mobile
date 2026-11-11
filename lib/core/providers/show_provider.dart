@@ -16,8 +16,10 @@ class ShowDetailData {
   });
 }
 
-final showDetailProvider =
-    FutureProvider.family<ShowDetailData, String>((ref, slug) async {
+final showDetailProvider = FutureProvider.family<ShowDetailData, String>((
+  ref,
+  slug,
+) async {
   final api = ref.read(apiClientProvider);
   final res = await api.get<Map<String, dynamic>>(
     ApiEndpoints.showDetail(slug),

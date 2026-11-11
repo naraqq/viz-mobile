@@ -43,7 +43,8 @@ class BrowseFilters {
     page: identical(page, _unset) ? this.page : page as int,
   );
 
-  bool get isEmpty => (search == null || search!.isEmpty) && (genre == null || genre!.isEmpty);
+  bool get isEmpty =>
+      (search == null || search!.isEmpty) && (genre == null || genre!.isEmpty);
 }
 
 class BrowseData {
@@ -87,13 +88,15 @@ class BrowseNotifier extends StateNotifier<AsyncValue<BrowseData>> {
   Future<void> loadMore() async {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.isLoadingMore) return;
-    state = AsyncValue.data(BrowseData(
-      items: current.items,
-      currentPage: current.currentPage,
-      lastPage: current.lastPage,
-      total: current.total,
-      isLoadingMore: true,
-    ));
+    state = AsyncValue.data(
+      BrowseData(
+        items: current.items,
+        currentPage: current.currentPage,
+        lastPage: current.lastPage,
+        total: current.total,
+        isLoadingMore: true,
+      ),
+    );
     _filters = _filters.copyWith(page: current.currentPage + 1);
     await _load(replace: false, requestId: ++_requestId);
   }
@@ -117,14 +120,18 @@ class BrowseNotifier extends StateNotifier<AsyncValue<BrowseData>> {
       final lastPage = readInt(meta['last_page']) ?? 1;
       final total = readInt(meta['total']) ?? 0;
 
-      final existing = replace ? <CatalogItem>[] : (state.valueOrNull?.items ?? []);
+      final existing = replace
+          ? <CatalogItem>[]
+          : (state.valueOrNull?.items ?? []);
 
-      state = AsyncValue.data(BrowseData(
-        items: [...existing, ...items],
-        currentPage: currentPage,
-        lastPage: lastPage,
-        total: total,
-      ));
+      state = AsyncValue.data(
+        BrowseData(
+          items: [...existing, ...items],
+          currentPage: currentPage,
+          lastPage: lastPage,
+          total: total,
+        ),
+      );
     } catch (e, st) {
       if (requestId != _requestId) return;
       state = AsyncValue.error(e, st);
@@ -132,6 +139,7 @@ class BrowseNotifier extends StateNotifier<AsyncValue<BrowseData>> {
   }
 }
 
-final browseProvider = StateNotifierProvider<BrowseNotifier, AsyncValue<BrowseData>>(
-  (ref) => BrowseNotifier(ref),
-);
+final browseProvider =
+    StateNotifierProvider<BrowseNotifier, AsyncValue<BrowseData>>(
+      (ref) => BrowseNotifier(ref),
+    );

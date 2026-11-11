@@ -18,34 +18,40 @@ class NotificationsScreen extends ConsumerWidget {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.background,
-        title: const Text('Мэдэгдэлүүд',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Мэдэгдэлүүд',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           if (state.unreadCount > 0)
             TextButton(
               onPressed: () => _markAllRead(ref, state.items),
-              child: const Text('Бүгдийг уншсан',
-                  style: TextStyle(color: AppTheme.primary, fontSize: 13)),
+              child: const Text(
+                'Бүгдийг уншсан',
+                style: TextStyle(color: AppTheme.primary, fontSize: 13),
+              ),
             ),
         ],
       ),
       body: state.isLoading && state.items.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            )
           : state.items.isEmpty
-              ? _Empty()
-              : RefreshIndicator(
-                  color: AppTheme.primary,
-                  backgroundColor: AppTheme.surface,
-                  onRefresh: () => ref.read(notificationsProvider.notifier).fetch(),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: state.items.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: Colors.white10, height: 1),
-                    itemBuilder: (context, i) =>
-                        _NotificationTile(item: state.items[i]),
-                  ),
-                ),
+          ? _Empty()
+          : RefreshIndicator(
+              color: AppTheme.primary,
+              backgroundColor: AppTheme.surface,
+              onRefresh: () => ref.read(notificationsProvider.notifier).fetch(),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: state.items.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(color: Colors.white10, height: 1),
+                itemBuilder: (context, i) =>
+                    _NotificationTile(item: state.items[i]),
+              ),
+            ),
     );
   }
 
@@ -112,7 +118,9 @@ class _NotificationTile extends ConsumerWidget {
                       Text(
                         _formatDate(item.createdAt),
                         style: const TextStyle(
-                            color: Colors.white38, fontSize: 11),
+                          color: Colors.white38,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -120,7 +128,10 @@ class _NotificationTile extends ConsumerWidget {
                   Text(
                     item.body,
                     style: const TextStyle(
-                        color: Colors.white60, fontSize: 13, height: 1.4),
+                      color: Colors.white60,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                   if (item.imageUrl != null) ...[
                     const SizedBox(height: 10),
@@ -131,10 +142,8 @@ class _NotificationTile extends ConsumerWidget {
                         width: double.infinity,
                         height: 160,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
-                          height: 160,
-                          color: Colors.white10,
-                        ),
+                        placeholder: (_, __) =>
+                            Container(height: 160, color: Colors.white10),
                         errorWidget: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
@@ -145,13 +154,18 @@ class _NotificationTile extends ConsumerWidget {
                       onTap: () => _openLink(context, item.link!),
                       child: Row(
                         children: [
-                          const Icon(Icons.open_in_new,
-                              size: 13, color: AppTheme.primary),
+                          const Icon(
+                            Icons.open_in_new,
+                            size: 13,
+                            color: AppTheme.primary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _shortUrl(item.link!),
                             style: const TextStyle(
-                                color: AppTheme.primary, fontSize: 12),
+                              color: AppTheme.primary,
+                              fontSize: 12,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -179,7 +193,8 @@ class _NotificationTile extends ConsumerWidget {
   String _shortUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      return uri.host + (uri.path.length > 20 ? '${uri.path.substring(0, 20)}…' : uri.path);
+      return uri.host +
+          (uri.path.length > 20 ? '${uri.path.substring(0, 20)}…' : uri.path);
     } catch (_) {
       return url.length > 40 ? '${url.substring(0, 40)}…' : url;
     }
@@ -195,15 +210,20 @@ class _NotificationTile extends ConsumerWidget {
 class _Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.notifications_none_outlined,
-                size: 64, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('Мэдэгдэл байхгүй байна',
-                style: TextStyle(color: Colors.white38, fontSize: 15)),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.notifications_none_outlined,
+          size: 64,
+          color: Colors.white24,
         ),
-      );
+        SizedBox(height: 12),
+        Text(
+          'Мэдэгдэл байхгүй байна',
+          style: TextStyle(color: Colors.white38, fontSize: 15),
+        ),
+      ],
+    ),
+  );
 }

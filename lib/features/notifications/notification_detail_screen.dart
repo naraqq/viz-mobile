@@ -52,10 +52,8 @@ class _NotificationDetailScreenState
                   width: double.infinity,
                   height: 220,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
-                    height: 220,
-                    color: Colors.white10,
-                  ),
+                  placeholder: (_, __) =>
+                      Container(height: 220, color: Colors.white10),
                   errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/lemony_logo.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -12,21 +13,23 @@ class AboutScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Аппын тухай', style: TextStyle(color: Colors.white, fontSize: 17)),
+        title: const Text(
+          'Аппын тухай',
+          style: TextStyle(color: Colors.white, fontSize: 17),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 24),
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.asset('assets/images/app_icon_black.png', width: 80, height: 80),
-            ),
-          ),
+          Center(child: LemonyLogo(size: 72)),
           const SizedBox(height: 20),
           const Center(
             child: Text(
@@ -35,7 +38,11 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          _InfoTile(icon: Icons.info_outline_rounded, label: 'Хувилбар', value: '1.0.0'),
+          _InfoTile(
+            icon: Icons.info_outline_rounded,
+            label: 'Хувилбар',
+            value: '1.0.0',
+          ),
         ],
       ),
     );
@@ -46,7 +53,11 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoTile({required this.icon, required this.label, required this.value});
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,12 +68,17 @@ class _InfoTile extends StatelessWidget {
         children: [
           Icon(icon, color: AppTheme.textSecondary, size: 20),
           const SizedBox(width: 14),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
           const Spacer(),
-          Text(value, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+          Text(
+            value,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          ),
         ],
       ),
     );
   }
 }
-

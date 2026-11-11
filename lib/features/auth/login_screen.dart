@@ -1,10 +1,20 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../core/providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/lemony_logo.dart';
+import 'auth_widgets.dart';
+
+/// Sign in and sign up are one flow: phone number, then a 4-digit PIN.
+///  - known number with a PIN  → enter PIN
+///  - new number               → create a PIN (number is verified later, in Profile)
+///  - known number, no PIN yet → one SMS proves the number, then create a PIN
+///    (also used for "forgot PIN")
+/// Google, Apple (iOS) and email stay available below.
+enum _Step { phone, pin, createPin, sms, setPin, email, emailRegister }
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,451 +23,589 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  _Step _step = _Step.phone;
+  String? _error;
+  String? _notice;
+  bool _busy = false;
+  bool _googleBusy = false;
+  bool _appleBusy = false;
+
+  // Phone + PIN
+  final _phoneCtrl = TextEditingController();
+  final _pinCtrl = TextEditingController();
+  final _pin2Ctrl = TextEditingController();
+  String _phone = ''; // digits only; the server normalizes too
+
+  // SMS
+  PhoneSession? _session;
+  Timer? _poll;
+  Timer? _tick;
+  int _renewals = 0;
+  bool _polling = false;
+  bool _forgot = false;
+
+  // Email
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _regNameCtrl = TextEditingController();
   bool _obscure = true;
-  bool _googleLoading = false;
-  bool _appleLoading = false;
 
-  late AnimationController _anim;
-  late Animation<double> _fade;
-  late Animation<Offset> _slide;
+  AuthNotifier get _auth => ref.read(authProvider.notifier);
 
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
-    _slide = Tween(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
-    _anim.forward();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = ref.read(authProvider).forcedLogoutMessage;
       if (msg != null && mounted) {
-        ref.read(authProvider.notifier).consumeForcedLogoutMessage();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: Colors.red.shade700,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        _auth.consumeForcedLogoutMessage();
+        setState(() => _notice = msg);
       }
     });
   }
 
   @override
   void dispose() {
-    _anim.dispose();
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
+    _stopTimers();
+    for (final c in [
+      _phoneCtrl,
+      _pinCtrl,
+      _pin2Ctrl,
+      _emailCtrl,
+      _passCtrl,
+      _regNameCtrl,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  bool get _anyLoading => _googleLoading || _appleLoading;
+  void _go(_Step next) => setState(() {
+    _error = null;
+    _step = next;
+  });
 
-  Future<void> _googleSignIn() async {
-    setState(() => _googleLoading = true);
-    final ok = await ref.read(authProvider.notifier).signInWithGoogle();
-    if (!mounted) return;
-    setState(() => _googleLoading = false);
-    if (!ok) {
-      _showError(ref.read(authProvider).error ?? 'Google нэвтрэлт амжилтгүй боллоо');
-    }
-    // Router redirects automatically on success (/ or /set-password based on needsPassword).
+  void _stopTimers() {
+    _poll?.cancel();
+    _tick?.cancel();
+    _poll = _tick = null;
   }
 
-  Future<void> _appleSignIn() async {
-    setState(() => _appleLoading = true);
-    final ok = await ref.read(authProvider.notifier).signInWithApple();
-    if (!mounted) return;
-    setState(() => _appleLoading = false);
-    if (!ok) {
-      _showError(ref.read(authProvider).error ?? 'Apple нэвтрэлт амжилтгүй боллоо');
+  Future<void> _run(Future<void> Function() action) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await action();
+    } on AuthFlowException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-    // Router redirects automatically on success (/ or /set-password based on needsPassword).
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 13)),
-        backgroundColor: const Color(0xFFB00020),
-        duration: const Duration(seconds: 5),
-      ),
+  // ── Phone → what next ────────────────────────────────────────────────────
+
+  Future<void> _submitPhone() async {
+    final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    // Explain instead of greying the button out — a dead button just looks broken.
+    if (digits.length < 8) {
+      setState(() => _error = '8 оронтой утасны дугаараа бүтэн оруулна уу.');
+      return;
+    }
+    await _run(() async {
+      final next = await _auth.checkPhone(_phoneCtrl.text);
+      if (!mounted) return;
+      _phone = digits;
+      _pinCtrl.clear();
+      _pin2Ctrl.clear();
+      _notice = null;
+      switch (next) {
+        case 'pin':
+          _go(_Step.pin);
+        case 'create':
+          _go(_Step.createPin);
+        default:
+          _forgot = false;
+          _renewals = 0;
+          await _startSms();
+      }
+    });
+  }
+
+  // ── PIN ──────────────────────────────────────────────────────────────────
+
+  Future<void> _submitPin() async {
+    if (_pinCtrl.text.length != 4) {
+      setState(() => _error = '4 оронтой ПИН кодоо оруулна уу.');
+      return;
+    }
+    await _run(() => _auth.loginWithPin(_phone, _pinCtrl.text));
+    if (mounted && _error != null) _pinCtrl.clear();
+  }
+
+  String? _pinPairError() {
+    if (_pinCtrl.text.length != 4) return '4 оронтой ПИН код үүсгэнэ үү.';
+    if (_pin2Ctrl.text != _pinCtrl.text) {
+      return 'ПИН код таарахгүй байна. Дахин оруулна уу.';
+    }
+    return null;
+  }
+
+  Future<void> _submitCreatePin() async {
+    final err = _pinPairError();
+    if (err != null) {
+      setState(() => _error = err);
+      return;
+    }
+    await _run(() => _auth.registerWithPin(_phone, _pinCtrl.text));
+  }
+
+  Future<void> _submitSetPin() async {
+    final err = _pinPairError();
+    if (err != null) {
+      setState(() => _error = err);
+      return;
+    }
+    final v = _session?.verification;
+    if (v == null) return;
+    await _run(() => _auth.completeSms(v, _pinCtrl.text));
+  }
+
+  // ── SMS (no PIN yet / forgot PIN) ────────────────────────────────────────
+
+  Future<void> _forgotPin() async {
+    _forgot = true;
+    _renewals = 0;
+    await _run(_startSms);
+  }
+
+  Future<void> _startSms({bool renewed = false}) async {
+    final s = await _auth.startSms(_phone);
+    if (!mounted) return;
+    setState(() {
+      _session = s;
+      _notice = renewed
+          ? 'Өмнөх код хүчингүй боллоо. Доорх ШИНЭ мессежийг илгээнэ үү.'
+          : null;
+    });
+    _go(_Step.sms);
+    _stopTimers();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+    _poll = Timer.periodic(const Duration(seconds: 3), (_) => _checkSms());
+  }
+
+  Future<void> _checkSms() async {
+    final v = _session?.verification;
+    if (v == null || _polling || _step != _Step.sms) return;
+    _polling = true;
+    try {
+      final s = await _auth.checkSms(v);
+      if (!mounted || s.isPending) return;
+      _stopTimers();
+      setState(() => _session = s);
+      if (s.isVerified) {
+        _pinCtrl.clear();
+        _pin2Ctrl.clear();
+        _notice = null;
+        _go(_Step.setPin);
+      } else if (s.isOver) {
+        // Expired: a new code (twice automatically), then ask.
+        if (_renewals < 2) {
+          _renewals++;
+          await _run(() => _startSms(renewed: true));
+        } else {
+          setState(
+            () => _notice =
+                'Хугацаа дууслаа. "Шинэ мессеж авах" дээр дарж дахин оролдоно уу.',
+          );
+        }
+      }
+    } on AuthFlowException {
+      // transient — the next tick retries
+    } finally {
+      _polling = false;
+    }
+  }
+
+  // ── Google / Apple / Email ───────────────────────────────────────────────
+
+  Future<void> _google() async {
+    setState(() {
+      _googleBusy = true;
+      _error = null;
+    });
+    final ok = await _auth.signInWithGoogle();
+    if (!mounted) return;
+    setState(() => _googleBusy = false);
+    if (!ok) {
+      setState(
+        () => _error =
+            ref.read(authProvider).error ??
+            'Google нэвтрэлт цуцлагдсан эсвэл амжилтгүй боллоо.',
+      );
+    }
+  }
+
+  Future<void> _apple() async {
+    setState(() {
+      _appleBusy = true;
+      _error = null;
+    });
+    final ok = await _auth.signInWithApple();
+    if (!mounted) return;
+    setState(() => _appleBusy = false);
+    if (!ok) {
+      setState(
+        () => _error =
+            ref.read(authProvider).error ?? 'Apple нэвтрэлт амжилтгүй боллоо.',
+      );
+    }
+  }
+
+  Future<void> _emailLogin() async {
+    if (!_emailCtrl.text.contains('@') || _passCtrl.text.isEmpty) {
+      setState(() => _error = 'Имэйл болон нууц үгээ оруулна уу.');
+      return;
+    }
+    setState(() => _error = null);
+    final ok = await _auth.login(_emailCtrl.text.trim(), _passCtrl.text);
+    if (!ok && mounted) {
+      _passCtrl.clear();
+      setState(
+        () =>
+            _error = ref.read(authProvider).error ?? 'Нэвтрэхэд алдаа гарлаа.',
+      );
+    }
+  }
+
+  Future<void> _emailRegister() async {
+    if (_regNameCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Нэрээ оруулна уу.');
+      return;
+    }
+    if (!_emailCtrl.text.contains('@')) {
+      setState(() => _error = 'Зөв имэйл оруулна уу.');
+      return;
+    }
+    if (_passCtrl.text.length < 8) {
+      setState(() => _error = 'Нууц үг хамгийн багадаа 8 тэмдэгт байна.');
+      return;
+    }
+    setState(() => _error = null);
+    final ok = await _auth.register(
+      _regNameCtrl.text.trim(),
+      _emailCtrl.text.trim(),
+      _passCtrl.text,
     );
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final ok = await ref
-        .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passCtrl.text);
-    if (!mounted) return;
-    if (ok) {
-      context.go('/');
-    } else {
-      _showError(ref.read(authProvider).error ?? 'Нэвтрэхэд алдаа гарлаа');
+    if (!ok && mounted) {
+      setState(
+        () => _error =
+            ref.read(authProvider).error ?? 'Бүртгүүлэхэд алдаа гарлаа.',
+      );
     }
   }
+
+  // ── Back handling ────────────────────────────────────────────────────────
+
+  _Step? get _backStep => switch (_step) {
+    _Step.phone => null,
+    _Step.pin || _Step.createPin => _Step.phone,
+    _Step.sms => _forgot ? _Step.pin : _Step.phone,
+    _Step.setPin => null, // number already proven — only forward
+    _Step.email => _Step.phone,
+    _Step.emailRegister => _Step.email,
+  };
+
+  void _back() {
+    final to = _backStep;
+    if (to == null) return;
+    if (_step == _Step.sms) {
+      _stopTimers();
+      _session = null;
+      _notice = null;
+    }
+    _pinCtrl.clear();
+    _pin2Ctrl.clear();
+    _go(to);
+  }
+
+  // ── UI ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authProvider).isLoading;
-    final size = MediaQuery.of(context).size;
+    final emailLoading = ref.watch(authProvider.select((s) => s.isLoading));
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -size.height * 0.15,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: size.height * 0.6,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    AppTheme.primary.withValues(alpha: 0.18),
-                    Colors.transparent,
-                  ],
-                  radius: 0.75,
-                ),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fade,
-              child: SlideTransition(
-                position: _slide,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Form(
-                    key: _formKey,
+    return PopScope(
+      canPop: _step == _Step.phone,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            const AuthGlow(),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: KeyedSubtree(
+                    key: ValueKey(_step),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(height: size.height * 0.08),
-
-                        Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: Image.asset(
-                              'assets/images/app_icon_black.png',
-                              height: 120,
-                              width: 120,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary,
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 64,
-                                ),
-                              ),
+                        if (_backStep != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: AuthBackButton(
+                              label:
+                                  _step == _Step.pin ||
+                                      _step == _Step.createPin ||
+                                      (_step == _Step.sms && !_forgot)
+                                  ? 'Дугаар солих'
+                                  : 'Буцах',
+                              onTap: _back,
                             ),
                           ),
-                        ),
-
-                        SizedBox(height: size.height * 0.06),
-
-                        _Field(
-                          controller: _emailCtrl,
-                          hint: 'И-мэйл хаяг',
-                          icon: Icons.mail_outline_rounded,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (v) => v == null || !v.contains('@')
-                              ? 'Зөв и-мэйл оруулна уу'
-                              : null,
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        _Field(
-                          controller: _passCtrl,
-                          hint: 'Нууц үг',
-                          icon: Icons.lock_outline_rounded,
-                          obscure: _obscure,
-                          onToggleObscure: () =>
-                              setState(() => _obscure = !_obscure),
-                          validator: (v) => v == null || v.length < 8
-                              ? 'Нууц үг хэт богино байна'
-                              : null,
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        SizedBox(
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: (isLoading || _anyLoading) ? null : _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                                  AppTheme.primary.withValues(alpha: 0.4),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Нэвтрэх',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                          ),
-                        ),
-
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 28),
-                          child: Row(
-                            children: [
-                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 14),
-                                child: Text(
-                                  'Эсвэл',
-                                  style: TextStyle(
-                                    color: Color(0xFF555555),
-                                    fontSize: 12,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Color(0xFF2A2A2A))),
-                            ],
-                          ),
-                        ),
-
-                        _SocialButton(
-                          onTap: (isLoading || _anyLoading) ? null : _googleSignIn,
-                          loading: _googleLoading,
-                          backgroundColor: Colors.white,
-                          loadingColor: const Color(0xFF3C4043),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/google_logo.webp',
-                                height: 20,
-                                width: 20,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.g_mobiledata_rounded,
-                                  color: Color(0xFF4285F4),
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Google-ээр нэвтрэх',
-                                style: TextStyle(
-                                  color: Color(0xFF3C4043),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        if (Platform.isIOS) ...[
-                          const SizedBox(height: 12),
-                          _SocialButton(
-                            onTap: (isLoading || _anyLoading) ? null : _appleSignIn,
-                            loading: _appleLoading,
-                            backgroundColor: const Color(0xFF1C1C1E),
-                            border: Border.all(color: const Color(0xFF3A3A3A)),
-                            loadingColor: Colors.white,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.apple, color: Colors.white, size: 22),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Apple-ээр нэвтрэх',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        SizedBox(height: size.height * 0.04),
-
-                        Text(
-                          Platform.isIOS
-                              ? 'Google эсвэл Apple-ээр нэвтэрч шинэ данс үүсгэж болно.'
-                              : 'Google-ээр нэвтэрч шинэ данс үүсгэж болно.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF444444),
-                            fontSize: 12,
-                            height: 1.6,
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
+                        if (_notice != null) AuthBanner(_notice!),
+                        ...switch (_step) {
+                          _Step.phone => _phoneStep(),
+                          _Step.pin => _pinStep(),
+                          _Step.createPin => _createPinStep(),
+                          _Step.sms => _smsStep(),
+                          _Step.setPin => _setPinStep(),
+                          _Step.email => _emailStep(emailLoading),
+                          _Step.emailRegister => _registerStep(emailLoading),
+                        },
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final bool loading;
-  final Color backgroundColor;
-  final BoxBorder? border;
-  final Widget child;
-  final Color loadingColor;
-
-  const _SocialButton({
-    required this.onTap,
-    required this.loading,
-    required this.backgroundColor,
-    required this.child,
-    required this.loadingColor,
-    this.border,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedOpacity(
-        opacity: onTap == null ? 0.45 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(12),
-            border: border,
-          ),
-          child: Center(
-            child: loading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: loadingColor,
-                    ),
-                  )
-                : child,
-          ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _Field extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final IconData icon;
-  final TextInputType? keyboardType;
-  final bool obscure;
-  final VoidCallback? onToggleObscure;
-  final String? Function(String?)? validator;
+  String get _prettyPhone => _phone.length == 8
+      ? '${_phone.substring(0, 4)} ${_phone.substring(4)}'
+      : _phone;
 
-  const _Field({
-    required this.controller,
-    required this.hint,
-    required this.icon,
-    this.keyboardType,
-    this.obscure = false,
-    this.onToggleObscure,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscure,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      validator: validator,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 15),
-        filled: true,
-        fillColor: const Color(0xFF151515),
-        prefixIcon: Icon(icon, color: const Color(0xFF555555), size: 20),
-        suffixIcon: onToggleObscure != null
-            ? IconButton(
-                icon: Icon(
-                  obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: const Color(0xFF555555),
-                  size: 20,
-                ),
-                onPressed: onToggleObscure,
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF555555)),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppTheme.primary.withValues(alpha: 0.7)),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primary),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  List<Widget> _phoneStep() => [
+    const SizedBox(height: 28),
+    const Center(child: LemonyLogo(size: 76)),
+    const SizedBox(height: 32),
+    const AuthTitle(
+      'Тавтай морил',
+      sub: 'Утасны дугаараа оруулаад 4 оронтой ПИН кодоор нэвтэрнэ.',
+    ),
+    const AuthLabel('Утасны дугаар'),
+    AuthInput(
+      controller: _phoneCtrl,
+      hint: '9911 2233',
+      keyboardType: TextInputType.phone,
+      autofillHints: const [AutofillHints.telephoneNumber],
+      letterSpacing: 1.5,
+      onSubmitted: (_) => _submitPhone(),
+    ),
+    if (_error != null) AuthErrorText(_error!),
+    const SizedBox(height: 16),
+    PrimaryButton(
+      label: _busy ? 'Түр хүлээнэ үү…' : 'Үргэлжлүүлэх',
+      onTap: _busy ? null : _submitPhone,
+    ),
+    const AuthDivider(),
+    SecondaryButton(
+      onTap: _googleBusy ? null : _google,
+      icon: Image.asset(
+        'assets/images/google_logo.webp',
+        width: 22,
+        height: 22,
       ),
-    );
+      label: _googleBusy ? 'Түр хүлээнэ үү…' : 'Google-ээр нэвтрэх',
+    ),
+    if (Platform.isIOS) ...[
+      const SizedBox(height: 12),
+      SecondaryButton(
+        onTap: _appleBusy ? null : _apple,
+        icon: const Icon(Icons.apple, color: Colors.white, size: 24),
+        label: _appleBusy ? 'Түр хүлээнэ үү…' : 'Apple-ээр нэвтрэх',
+      ),
+    ],
+    const SizedBox(height: 12),
+    SecondaryButton(
+      onTap: () => _go(_Step.email),
+      icon: const Icon(Icons.mail_outline_rounded, color: Colors.white),
+      label: 'Имэйлээр нэвтрэх',
+    ),
+  ];
+
+  List<Widget> _pinStep() => [
+    AuthTitle('ПИН кодоо оруулна уу', sub: '$_prettyPhone дугаартай бүртгэл'),
+    PinInput(
+      controller: _pinCtrl,
+      autofocus: true,
+      onCompleted: (_) => _submitPin(),
+    ),
+    if (_error != null) AuthErrorText(_error!),
+    const SizedBox(height: 16),
+    PrimaryButton(
+      label: _busy ? 'Нэвтэрч байна…' : 'Нэвтрэх',
+      onTap: _busy ? null : _submitPin,
+    ),
+    const SizedBox(height: 12),
+    Center(
+      child: LinkText(
+        'ПИН кодоо мартсан уу?',
+        muted: true,
+        onTap: _busy ? null : _forgotPin,
+      ),
+    ),
+  ];
+
+  List<Widget> _pinPair({required String button, required VoidCallback go}) => [
+    const AuthLabel('ПИН код'),
+    PinInput(controller: _pinCtrl, autofocus: true),
+    const SizedBox(height: 16),
+    const AuthLabel('ПИН кодоо давтана уу'),
+    PinInput(controller: _pin2Ctrl, onCompleted: (_) => go()),
+    if (_error != null) AuthErrorText(_error!),
+    const SizedBox(height: 16),
+    PrimaryButton(
+      label: _busy ? 'Түр хүлээнэ үү…' : button,
+      onTap: _busy ? null : go,
+    ),
+    const SizedBox(height: 12),
+    const Text(
+      'ПИН кодоо бусдад бүү хэлээрэй. 1234, 0000 гэх мэт амархан код бүү сонгоорой.',
+      textAlign: TextAlign.center,
+      style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 14, height: 1.5),
+    ),
+  ];
+
+  List<Widget> _createPinStep() => [
+    AuthTitle(
+      'ПИН код үүсгэх',
+      sub:
+          '$_prettyPhone дугаартаа 4 оронтой ПИН код үүсгэнэ үү. Дараа нэвтрэхэд энэ код хэрэгтэй.',
+    ),
+    ..._pinPair(button: 'Үргэлжлүүлэх', go: _submitCreatePin),
+  ];
+
+  List<Widget> _setPinStep() => [
+    AuthBanner('$_prettyPhone дугаар баталгаажлаа!', ok: true),
+    AuthTitle(
+      _forgot ? 'Шинэ ПИН код' : 'ПИН код үүсгэх',
+      sub: 'Дараа нэвтрэхэд энэ 4 оронтой код хэрэгтэй.',
+    ),
+    ..._pinPair(button: 'Хадгалаад нэвтрэх', go: _submitSetPin),
+  ];
+
+  List<Widget> _smsStep() {
+    final s = _session;
+    if (s == null) return const [];
+    return [
+      AuthTitle(
+        'Нэг мессеж илгээнэ үү',
+        sub: _forgot
+            ? 'ПИН кодоо шинэчлэхийн тулд $_prettyPhone дугаараа баталгаажуулна.'
+            : 'Таны бүртгэл олдлоо. Анх удаа апп-аар нэвтэрч байгаа тул дугаараа баталгаажуулаад ПИН код үүсгэнэ.',
+      ),
+      if (s.isPending)
+        SmsWaitPanel(session: s, onError: (m) => setState(() => _error = m))
+      else
+        PrimaryButton(
+          label: 'Шинэ мессеж авах',
+          onTap: _busy
+              ? null
+              : () {
+                  _renewals = 0;
+                  _run(() => _startSms(renewed: true));
+                },
+        ),
+      if (_error != null) AuthErrorText(_error!),
+    ];
   }
+
+  List<Widget> _emailStep(bool loading) => [
+    const AuthTitle('Имэйлээр нэвтрэх'),
+    const AuthLabel('Имэйл'),
+    AuthInput(
+      controller: _emailCtrl,
+      keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.username],
+      autofocus: true,
+    ),
+    const SizedBox(height: 16),
+    const AuthLabel('Нууц үг'),
+    AuthInput(
+      controller: _passCtrl,
+      obscure: _obscure,
+      onToggleObscure: () => setState(() => _obscure = !_obscure),
+      autofillHints: const [AutofillHints.password],
+      onSubmitted: (_) => _emailLogin(),
+    ),
+    if (_error != null) AuthErrorText(_error!),
+    const SizedBox(height: 16),
+    PrimaryButton(
+      label: loading ? 'Нэвтэрч байна…' : 'Нэвтрэх',
+      onTap: loading ? null : _emailLogin,
+    ),
+    const SizedBox(height: 20),
+    Center(
+      child: LinkText(
+        'Имэйлээр шинээр бүртгүүлэх',
+        muted: true,
+        onTap: () => _go(_Step.emailRegister),
+      ),
+    ),
+  ];
+
+  List<Widget> _registerStep(bool loading) => [
+    const AuthTitle('Имэйлээр бүртгүүлэх'),
+    const AuthLabel('Нэр'),
+    AuthInput(
+      controller: _regNameCtrl,
+      autofocus: true,
+      autofillHints: const [AutofillHints.name],
+    ),
+    const SizedBox(height: 16),
+    const AuthLabel('Имэйл'),
+    AuthInput(
+      controller: _emailCtrl,
+      keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.email],
+    ),
+    const SizedBox(height: 16),
+    const AuthLabel('Нууц үг'),
+    AuthInput(
+      controller: _passCtrl,
+      obscure: _obscure,
+      onToggleObscure: () => setState(() => _obscure = !_obscure),
+      autofillHints: const [AutofillHints.newPassword],
+      onSubmitted: (_) => _emailRegister(),
+    ),
+    if (_error == null)
+      const Padding(
+        padding: EdgeInsets.only(top: 6),
+        child: Text(
+          'Хамгийн багадаа 8 тэмдэгт',
+          style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 14),
+        ),
+      ),
+    if (_error != null) AuthErrorText(_error!),
+    const SizedBox(height: 16),
+    PrimaryButton(
+      label: loading ? 'Түр хүлээнэ үү…' : 'Бүртгүүлэх',
+      onTap: loading ? null : _emailRegister,
+    ),
+  ];
 }

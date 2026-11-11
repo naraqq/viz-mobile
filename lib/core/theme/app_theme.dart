@@ -33,11 +33,26 @@ class AppTheme {
         ),
       ),
       textTheme: const TextTheme(
-        displayLarge: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold),
-        displayMedium: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold),
-        headlineLarge: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold),
-        headlineMedium: TextStyle(color: _textPrimary, fontWeight: FontWeight.w600),
-        headlineSmall: TextStyle(color: _textPrimary, fontWeight: FontWeight.w600),
+        displayLarge: TextStyle(
+          color: _textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        displayMedium: TextStyle(
+          color: _textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineLarge: TextStyle(
+          color: _textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineMedium: TextStyle(
+          color: _textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        headlineSmall: TextStyle(
+          color: _textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
         titleLarge: TextStyle(color: _textPrimary, fontWeight: FontWeight.w600),
         titleMedium: TextStyle(color: _textPrimary),
         titleSmall: TextStyle(color: _textSecondary),

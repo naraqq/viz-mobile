@@ -9,7 +9,18 @@ class AppRemoteConfig {
   // ApiClient appends /api itself.
   static String get apiBaseUrl => _apiBaseUrl;
 
+  // Dev override: flutter run --dart-define=API_BASE_URL=http://18.140.235.103
+  // When set, it wins over Firebase Remote Config and the fallback.
+  static const _override = String.fromEnvironment('API_BASE_URL');
+
   static Future<void> init() async {
+    if (_override.isNotEmpty) {
+      _apiBaseUrl = _normalizeUrl(_override);
+      debugPrint(
+        '[RemoteConfig] using --dart-define API_BASE_URL=$_apiBaseUrl',
+      );
+      return;
+    }
     try {
       final rc = FirebaseRemoteConfig.instance;
 
@@ -40,7 +51,7 @@ class AppRemoteConfig {
   }
 
   static void useFallback({Object? reason}) {
-    _apiBaseUrl = _normalizeUrl(_fallback);
+    _apiBaseUrl = _normalizeUrl(_override.isNotEmpty ? _override : _fallback);
     debugPrint('[RemoteConfig] using fallback api_base_url=$_apiBaseUrl');
     if (reason != null) debugPrint('[RemoteConfig] fallback reason: $reason');
   }

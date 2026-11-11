@@ -755,7 +755,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               ),
 
             // ── Buffering spinner — only when controls are hidden ──────────
-            if (_isBuffering && _isInitialized && !_isScrubbing && !_showControls)
+            if (_isBuffering &&
+                _isInitialized &&
+                !_isScrubbing &&
+                !_showControls)
               const Center(
                 child: SizedBox(
                   width: 40,
@@ -769,25 +772,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
             // ── Up Next card ───────────────────────────────────────────────
             if (_upNextVisible && !_isScrubbing && _isInitialized)
-              Builder(builder: (context) {
-                final next = _nextEpisode();
-                if (next == null) return const SizedBox.shrink();
-                return Positioned(
-                  right: 20,
-                  bottom: _showControls ? 90 : 20,
-                  child: _UpNextCard(
-                    season: next.$1,
-                    episode: next.$2,
-                    remaining: _controller.value.duration -
-                        _controller.value.position,
-                    onPlay: () => _switchToEpisode(next.$1, next.$2),
-                    onDismiss: () => setState(() {
-                      _upNextVisible = false;
-                      _upNextDismissed = true;
-                    }),
-                  ),
-                );
-              }),
+              Builder(
+                builder: (context) {
+                  final next = _nextEpisode();
+                  if (next == null) return const SizedBox.shrink();
+                  return Positioned(
+                    right: 20,
+                    bottom: _showControls ? 90 : 20,
+                    child: _UpNextCard(
+                      season: next.$1,
+                      episode: next.$2,
+                      remaining:
+                          _controller.value.duration -
+                          _controller.value.position,
+                      onPlay: () => _switchToEpisode(next.$1, next.$2),
+                      onDismiss: () => setState(() {
+                        _upNextVisible = false;
+                        _upNextDismissed = true;
+                      }),
+                    ),
+                  );
+                },
+              ),
 
             // ── Screen recording block ─────────────────────────────────────
             if (_isRecording)
@@ -797,7 +803,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.videocam_off_rounded, color: Colors.white38, size: 64),
+                      Icon(
+                        Icons.videocam_off_rounded,
+                        color: Colors.white38,
+                        size: 64,
+                      ),
                       SizedBox(height: 16),
                       Text(
                         'Screen recording is not allowed',
@@ -1535,23 +1545,25 @@ class _EpisodesSheetState extends State<_EpisodesSheet> {
                     ),
                   ),
                   if (widget.currentEpisodeId != null)
-                    Builder(builder: (context) {
-                      for (var i = 0; i < widget.seasons.length; i++) {
-                        for (final ep in widget.seasons[i].episodes) {
-                          if (ep.id == widget.currentEpisodeId) {
-                            return Text(
-                              'Одоо: S${widget.seasons[i].seasonNumber}E${ep.episodeNumber}',
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            );
+                    Builder(
+                      builder: (context) {
+                        for (var i = 0; i < widget.seasons.length; i++) {
+                          for (final ep in widget.seasons[i].episodes) {
+                            if (ep.id == widget.currentEpisodeId) {
+                              return Text(
+                                'Одоо: S${widget.seasons[i].seasonNumber}E${ep.episodeNumber}',
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              );
+                            }
                           }
                         }
-                      }
-                      return const SizedBox.shrink();
-                    }),
+                        return const SizedBox.shrink();
+                      },
+                    ),
                 ],
               ),
             ),
@@ -1583,9 +1595,7 @@ class _EpisodesSheetState extends State<_EpisodesSheet> {
                               : Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: selected
-                                ? AppTheme.primary
-                                : Colors.white12,
+                            color: selected ? AppTheme.primary : Colors.white12,
                           ),
                         ),
                         child: Text(
@@ -1851,8 +1861,7 @@ class _UpNextCard extends StatelessWidget {
           // ── Thumbnail ───────────────────────────────────────────────────
           if (episode.stillUrl != null)
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.zero),
+              borderRadius: const BorderRadius.vertical(top: Radius.zero),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Image.network(

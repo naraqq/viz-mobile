@@ -39,9 +39,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       await ref.read(authProvider.notifier).refreshUser();
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Профайл шинэчлэгдлээ')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Профайл шинэчлэгдлээ')));
       }
     } catch (_) {
       if (mounted) {
@@ -59,7 +59,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final requiresPassword = user?.hasPassword ?? true;
     showDialog(
       context: context,
-      builder: (ctx) => _DeleteAccountDialog(requiresPassword: requiresPassword),
+      builder: (ctx) =>
+          _DeleteAccountDialog(requiresPassword: requiresPassword),
     );
   }
 
@@ -72,10 +73,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Профайл засах', style: TextStyle(color: Colors.white, fontSize: 17)),
+        title: const Text(
+          'Профайл засах',
+          style: TextStyle(color: Colors.white, fontSize: 17),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -99,8 +107,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               child: Center(
                 child: Text(
-                  user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                  user?.name.isNotEmpty == true
+                      ? user!.name[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -138,7 +152,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
-              suffixIcon: const Icon(Icons.lock_outline, color: AppTheme.textSecondary, size: 16),
+              suffixIcon: const Icon(
+                Icons.lock_outline,
+                color: AppTheme.textSecondary,
+                size: 16,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -147,21 +165,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: _loading
                 ? const SizedBox(
-                    height: 20, width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
-                : const Text('Хадгалах', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                : const Text(
+                    'Хадгалах',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
           ),
 
           // Danger zone
           const SizedBox(height: 48),
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.red.shade900.withValues(alpha: 0.5)),
+              border: Border.all(
+                color: Colors.red.shade900.withValues(alpha: 0.5),
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.all(16),
@@ -170,7 +199,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               children: [
                 const Text(
                   'Бүртгэл устгах',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
@@ -186,9 +219,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       foregroundColor: Colors.red,
                       side: BorderSide(color: Colors.red.shade800),
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Бүртгэл устгах', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Бүртгэл устгах',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -206,7 +244,8 @@ class _DeleteAccountDialog extends ConsumerStatefulWidget {
   const _DeleteAccountDialog({required this.requiresPassword});
 
   @override
-  ConsumerState<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+  ConsumerState<_DeleteAccountDialog> createState() =>
+      _DeleteAccountDialogState();
 }
 
 class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
@@ -226,7 +265,10 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       setState(() => _error = 'Нууц үгээ оруулна уу');
       return;
     }
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final api = ref.read(apiClientProvider);
       await api.delete<dynamic>(
@@ -238,12 +280,21 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
         await ref.read(authProvider.notifier).logout();
       }
     } on DioException catch (e) {
-      final msg = e.response?.data?['errors']?['password']?.first
-          ?? e.response?.data?['message']
-          ?? 'Алдаа гарлаа';
-      if (mounted) setState(() { _loading = false; _error = msg as String?; });
+      final msg =
+          e.response?.data?['errors']?['password']?.first ??
+          e.response?.data?['message'] ??
+          'Алдаа гарлаа';
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error = msg as String?;
+        });
     } catch (_) {
-      if (mounted) setState(() { _loading = false; _error = 'Алдаа гарлаа'; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error = 'Алдаа гарлаа';
+        });
     }
   }
 
@@ -283,7 +334,9 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
                 errorText: _error,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: AppTheme.textSecondary,
                     size: 20,
                   ),
@@ -293,23 +346,39 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
             ),
           ] else if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
           ],
         ],
       ),
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Болих', style: TextStyle(color: AppTheme.textSecondary)),
+          child: const Text(
+            'Болих',
+            style: TextStyle(color: AppTheme.textSecondary),
+          ),
         ),
         TextButton(
           onPressed: _loading ? null : _confirm,
           child: _loading
               ? const SizedBox(
-                  height: 16, width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.red,
+                  ),
                 )
-              : const Text('Устгах', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              : const Text(
+                  'Устгах',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ],
     );
@@ -322,12 +391,12 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      color: AppTheme.textSecondary,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    ),
+  );
 }

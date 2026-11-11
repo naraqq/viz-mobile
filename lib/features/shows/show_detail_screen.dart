@@ -652,7 +652,9 @@ class _EpisodeTile extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: isLoading ? null : ((released && hasVideo) || !canWatch ? onTap : null),
+      onTap: isLoading
+          ? null
+          : ((released && hasVideo) || !canWatch ? onTap : null),
       child: Container(
         foregroundDecoration: released
             ? null
@@ -781,7 +783,9 @@ class _EpisodeTile extends StatelessWidget {
                 ),
               ],
             ),
-            if (released && description != null && description.trim().isNotEmpty) ...[
+            if (released &&
+                description != null &&
+                description.trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
