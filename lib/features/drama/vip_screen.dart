@@ -9,6 +9,8 @@ import 'drama_api.dart';
 import 'drama_models.dart';
 import 'widgets/coin_store.dart';
 import 'widgets/drama_widgets.dart';
+import '../rewards/rewards_api.dart';
+import '../rewards/rewards_section.dart';
 
 final _vipDataProvider =
     FutureProvider.autoDispose<
@@ -33,7 +35,8 @@ final _vipDataProvider =
       return (plans: plans, balance: c.balance, packages: c.packages);
     });
 
-/// VIP: unlimited access plans + coin packages for single-episode unlocks.
+/// Шагнал tab: coin balance, daily check-in and watch tasks, then VIP plans and coin
+/// packages.
 class VipScreen extends ConsumerWidget {
   const VipScreen({super.key});
 
@@ -50,10 +53,42 @@ class VipScreen extends ConsumerWidget {
       body: RefreshIndicator(
         color: Colors.white,
         backgroundColor: DramaColors.surface,
-        onRefresh: () => ref.refresh(_vipDataProvider.future),
+        onRefresh: () {
+          ref.invalidate(rewardsProvider);
+          return ref.refresh(_vipDataProvider.future);
+        },
         child: ListView(
           padding: EdgeInsets.fromLTRB(16, pad.top + 12, 16, 24),
           children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: DramaColors.surface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const CoinIcon(size: 22),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Миний зоос',
+                    style: TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${balance ?? async.valueOrNull?.balance ?? '—'}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const RewardsSection(),
+            const _Title('VIP'),
             // Status card
             Container(
               padding: const EdgeInsets.all(18),
@@ -102,33 +137,6 @@ class VipScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: DramaColors.surface,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  const CoinIcon(size: 22),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Миний зоос',
-                    style: TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${balance ?? async.valueOrNull?.balance ?? '—'}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             ...async.when(
               loading: () => [
                 const SizedBox(height: 24),
@@ -145,7 +153,7 @@ class VipScreen extends ConsumerWidget {
               ],
               data: (data) => [
                 if (data.plans.isNotEmpty) ...[
-                  const _Title('VIP багцууд'),
+                  const SizedBox(height: 12),
                   for (final p in data.plans)
                     _PlanTile(
                       plan: p,

@@ -47,6 +47,11 @@ class ApiEndpoints {
   static const String feed = '/feed';
   static const String library = '/library';
   static const String coins = '/coins';
+  static const String rewards = '/rewards';
+  static const String rewardsHeartbeat = '/rewards/heartbeat';
+  static const String rewardsCheckin = '/rewards/checkin';
+  static String rewardsWatchClaim(int minutes) =>
+      '/rewards/watch/$minutes/claim';
   static String episodePlay(int id) => '/episodes/$id/play';
   static String episodeUnlock(int id) => '/episodes/$id/unlock';
   static String dramaSave(int id) => '/dramas/$id/save';

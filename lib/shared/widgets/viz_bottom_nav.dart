@@ -34,7 +34,7 @@ class VizBottomNav extends StatelessWidget {
     (
       icon: Icons.diamond_outlined,
       activeIcon: Icons.diamond_rounded,
-      label: 'VIP',
+      label: 'Шагнал',
       path: '/vip',
     ),
     (

@@ -8,12 +8,16 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../rewards/rewards_api.dart';
 import 'drama_api.dart';
 import 'drama_models.dart';
+import 'video/next_up_card.dart';
 import 'video/short_video_view.dart';
 import 'video/snappy_page_physics.dart';
 import 'video/video_pool.dart';
 import 'widgets/coin_store.dart';
+import 'widgets/paywall.dart';
+import '../../core/providers/auth_provider.dart';
 import 'widgets/drama_widgets.dart';
 
 /// Full-screen vertical player for one drama: swipe up for the next episode.
@@ -48,6 +52,12 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
   final Set<int> _fetching = {};
   final Set<int> _retried = {};
 
+  /// Episodes where the viewer tapped Болих on the next-up card: don't auto-advance.
+  final Set<int> _noAutoNext = {};
+
+  /// Locked episodes auto-unlock was already tried on (once each).
+  final Set<int> _autoTried = {};
+
   bool _liked = false;
   bool _saved = false;
   int _likes = 0;
@@ -58,6 +68,10 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
 
   // Read once: progress is also saved from dispose/timers, when `ref` can't be used.
   late final DramaApi _api = ref.read(dramaApiProvider);
+  late final RewardsApi _rewards = ref.read(rewardsApiProvider);
+
+  /// Watch-time heartbeat for reward tasks: only while a video is really playing.
+  Timer? _beatTimer;
   late final ProviderContainer _container;
 
   @override
@@ -65,6 +79,12 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _api; // initialise while `ref` is usable
+    _rewards;
+    _beatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_eps.isEmpty || _index >= _eps.length) return;
+      final playing = _ctrls[_eps[_index].id]?.value.isPlaying ?? false;
+      if (playing) _rewards.heartbeat();
+    });
     _container = ProviderScope.containerOf(context, listen: false);
     WakelockPlus.enable();
     _load();
@@ -81,6 +101,7 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
     final container = _container;
     _saveProgress(_index).whenComplete(() => refreshWatchState(container));
     _progressTimer?.cancel();
+    _beatTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     WakelockPlus.disable();
     _pool.dispose();
@@ -146,6 +167,7 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
       _index = i;
       _unlockError = null;
     });
+    _maybeAutoUnlock(i);
     // Not buffered yet (very fast swiping): start it now rather than after settling.
     if (!_ctrls.containsKey(_eps[i].id)) _ensure(i);
   }
@@ -231,6 +253,7 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
     }
 
     final url = play.url;
+    if (play.locked) _maybeAutoUnlock(i);
     if (play.locked || url == null) return;
 
     final c = await _pool.obtain(ep.id, url, warm: i != _index);
@@ -304,6 +327,58 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
       }
     } finally {
       if (mounted) setState(() => _unlocking = false);
+    }
+  }
+
+  /// "Auto-unlock" switch on: open a locked episode by itself when the balance covers it.
+  void _maybeAutoUnlock(int i) {
+    if (i != _index || i < 0 || i >= _eps.length || _unlocking) return;
+    final ep = _eps[i];
+    final play = _plays[ep.id];
+    final locked = play?.locked ?? ep.isLocked;
+    if (!locked || _autoTried.contains(ep.id)) return;
+    if (!ref.read(autoUnlockProvider)) return;
+    final price =
+        play?.episode.coinPrice ??
+        ep.coinPrice ??
+        _detail?.access.episodeCoinPrice;
+    final balance =
+        ref.read(coinBalanceProvider) ?? _detail?.access.coinBalance ?? 0;
+    if (price == null || balance < price) return;
+    _autoTried.add(ep.id);
+    _unlock(ep).then((_) {
+      if (!mounted || _eps[i].isLocked) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('${ep.number}-р анги нээгдлээ · −$price зоос'),
+        ),
+      );
+    });
+  }
+
+  /// Coins bought from the paywall: refresh the balance, then unlock if it now covers it.
+  Future<void> _afterCoinsBought(DramaEpisode ep, int? price) async {
+    try {
+      final c = await _api.coins();
+      if (!mounted) return;
+      ref.read(coinBalanceProvider.notifier).state = c.balance;
+      if (price != null && c.balance >= price) await _unlock(ep);
+    } catch (_) {}
+  }
+
+  /// VIP bought from the paywall: every episode is open now.
+  void _afterVipBought() {
+    ref.read(authProvider.notifier).refreshUser();
+    setState(() {
+      _plays.clear();
+      _eps = [for (final e in _eps) e.copyWith(isLocked: false)];
+    });
+    _ensure(_index);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('VIP идэвхжлээ! Бүх анги нээлттэй.')),
+      );
     }
   }
 
@@ -447,7 +522,9 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
             posterUrl: poster,
             // No spinner behind an error message.
             active: i == _index && !_appPaused && _errors[ep.id] == null,
-            onEnded: _next,
+            onEnded: () {
+              if (!_noAutoNext.contains(ep.id)) _next();
+            },
             onDoubleTap: () {
               if (!_liked) _toggleLike();
             },
@@ -561,9 +638,35 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
           ),
         ),
 
+        // "Next episode in 3…" during the last seconds.
+        if (!locked &&
+            i == _index &&
+            i + 1 < _eps.length &&
+            !_noAutoNext.contains(ep.id))
+          Positioned(
+            left: 12,
+            right: 84, // clear of the like / save / episodes rail
+            bottom: pad.bottom + 118,
+            child: NextUpCard(
+              controller: _ctrls[ep.id],
+              next: DramaEpisode(
+                id: _eps[i + 1].id,
+                number: _eps[i + 1].number,
+                stillUrl: _eps[i + 1].stillUrl,
+                isLocked:
+                    (_plays[_eps[i + 1].id]?.locked ?? _eps[i + 1].isLocked) &&
+                    !d.access.isVip,
+                coinPrice: _eps[i + 1].coinPrice ?? d.access.episodeCoinPrice,
+              ),
+              fallbackImage: d.drama.posterUrl,
+              onPlayNow: _next,
+              onCancel: () => setState(() => _noAutoNext.add(ep.id)),
+            ),
+          ),
+
         if (locked)
           Center(
-            child: UnlockPanel(
+            child: PaywallPanel(
               episodeNumber: ep.number,
               price:
                   play?.episode.coinPrice ??
@@ -573,8 +676,13 @@ class _DramaPlayerScreenState extends ConsumerState<DramaPlayerScreen>
               busy: _unlocking,
               error: i == _index ? _unlockError : null,
               onUnlock: () => _unlock(ep),
-              onBuyCoins: () => showCoinStoreSheet(context),
-              onVip: () => context.go('/vip'),
+              onCoinsBought: () => _afterCoinsBought(
+                ep,
+                play?.episode.coinPrice ??
+                    ep.coinPrice ??
+                    d.access.episodeCoinPrice,
+              ),
+              onVipBought: _afterVipBought,
             ),
           )
         else if (_errors[ep.id] != null && _ctrls[ep.id] == null)

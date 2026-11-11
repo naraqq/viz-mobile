@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../shared/widgets/lemony_logo.dart';
+import '../rewards/rewards_api.dart';
 import 'drama_api.dart';
 import 'drama_models.dart';
 import 'video/short_video_view.dart';
@@ -49,6 +50,10 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
 
   // Read once: progress is also saved from dispose, when `ref` can't be used.
   late final DramaApi _api = ref.read(dramaApiProvider);
+  late final RewardsApi _rewards = ref.read(rewardsApiProvider);
+
+  /// Watch-time heartbeat for reward tasks: only while a video is really playing.
+  Timer? _beatTimer;
   late final ProviderContainer _container;
 
   @override
@@ -56,6 +61,11 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _api; // initialise while `ref` is usable
+    _rewards;
+    _beatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_covered || _items.isEmpty || _index >= _items.length) return;
+      if (_ctrls[_key(_index)]?.value.isPlaying ?? false) _rewards.heartbeat();
+    });
     _container = ProviderScope.containerOf(context, listen: false);
     WakelockPlus.enable();
     _loadMore();
@@ -63,6 +73,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
 
   @override
   void dispose() {
+    _beatTimer?.cancel();
     // Save the position, then refresh Continue Watching / lists so they're current the
     // moment the viewer is back (ref can't be used after dispose, hence the container).
     final container = _container;
