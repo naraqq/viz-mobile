@@ -1,7 +1,7 @@
 name: viz_flutter
 description: "Lemony - Short Drama Streaming App"
 publish_to: 'none'
-version: 1.0.1+9
+version: 2.0.0+10
 
 environment:
   sdk: ^3.8.1

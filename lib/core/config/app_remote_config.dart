@@ -2,14 +2,19 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 
 class AppRemoteConfig {
-  static const _fallback = 'https://www.viz24.net/';
+  static const _fallback = 'https://lemony.mn/';
+
+  /// Remote Config key for the API root. A new key (not the old `api_base_url`) so the
+  /// value still set for older app versions can't send this one to the old server.
+  /// Leave it unset in Firebase to use lemony.mn; set it only to move the app elsewhere.
+  static const _key = 'lemony_api_base_url';
   static String _apiBaseUrl = _normalizeUrl(_fallback);
 
   // Normalized site root — no trailing slash, no /api suffix.
   // ApiClient appends /api itself.
   static String get apiBaseUrl => _apiBaseUrl;
 
-  // Dev override: flutter run --dart-define=API_BASE_URL=http://18.140.235.103
+  // Dev override: flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
   // When set, it wins over Firebase Remote Config and the fallback.
   static const _override = String.fromEnvironment('API_BASE_URL');
 
@@ -33,10 +38,10 @@ class AppRemoteConfig {
         ),
       );
 
-      await rc.setDefaults({'api_base_url': _fallback});
+      await rc.setDefaults({_key: _fallback});
 
       final fetched = await rc.fetchAndActivate();
-      final raw = rc.getString('api_base_url').trim();
+      final raw = rc.getString(_key).trim();
       _apiBaseUrl = _normalizeUrl(raw.isEmpty ? _fallback : raw);
 
       debugPrint(
@@ -61,6 +66,6 @@ class AppRemoteConfig {
     while (normalized.endsWith('/')) {
       normalized = normalized.substring(0, normalized.length - 1);
     }
-    return normalized.isEmpty ? 'https://www.viz24.net' : normalized;
+    return normalized.isEmpty ? 'https://lemony.mn' : normalized;
   }
 }
